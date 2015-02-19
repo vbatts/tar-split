@@ -34,6 +34,29 @@ type Reader struct {
 	pad     int64           // amount of padding (ignored) after current file entry
 	curr    numBytesReader  // reader for current file entry
 	hdrBuff [blockSize]byte // buffer to use in readHeader
+
+	RawAccounting bool          // Whether to enable the access needed to reassemble the tar from raw bytes. Some performance/memory hit for this.
+	rawBytes      *bytes.Buffer // last raw bits
+}
+
+// RawBytes accesses the raw bytes of the archive, apart from the file payload itself.
+// This includes the header and padding.
+//
+// This call resets the current rawbytes buffer
+//
+// Only when RawAccounting is enabled, otherwise this returns nil
+func (tr *Reader) RawBytes() []byte {
+	if !tr.RawAccounting {
+		return nil
+	}
+	if tr.rawBytes == nil {
+		tr.rawBytes = bytes.NewBuffer(nil)
+	}
+	defer func() {
+		// if we've read them, then flush them.
+		tr.rawBytes.Reset()
+	}()
+	return tr.rawBytes.Bytes()
 }
 
 // A numBytesReader is an io.Reader with a numBytes method, returning the number
@@ -89,6 +112,13 @@ func NewReader(r io.Reader) *Reader { return &Reader{r: r} }
 // io.EOF is returned at the end of the input.
 func (tr *Reader) Next() (*Header, error) {
 	var hdr *Header
+	if tr.RawAccounting {
+		if tr.rawBytes == nil {
+			tr.rawBytes = bytes.NewBuffer(nil)
+		} else {
+			tr.rawBytes.Reset()
+		}
+	}
 	if tr.err == nil {
 		tr.skipUnread()
 	}
@@ -131,7 +161,20 @@ func (tr *Reader) Next() (*Header, error) {
 		if err != nil {
 			return nil, err
 		}
+		var b []byte
+		if tr.RawAccounting {
+			if _, err = tr.rawBytes.Write(realname); err != nil {
+				return nil, err
+			}
+			b = tr.RawBytes()
+		}
 		hdr, err := tr.Next()
+		// since the above call to Next() resets the buffer, we need to throw the bytes over
+		if tr.RawAccounting {
+			if _, err = tr.rawBytes.Write(b); err != nil {
+				return nil, err
+			}
+		}
 		hdr.Name = cString(realname)
 		return hdr, err
 	case TypeGNULongLink:
@@ -140,7 +183,20 @@ func (tr *Reader) Next() (*Header, error) {
 		if err != nil {
 			return nil, err
 		}
+		var b []byte
+		if tr.RawAccounting {
+			if _, err = tr.rawBytes.Write(realname); err != nil {
+				return nil, err
+			}
+			b = tr.RawBytes()
+		}
 		hdr, err := tr.Next()
+		// since the above call to Next() resets the buffer, we need to throw the bytes over
+		if tr.RawAccounting {
+			if _, err = tr.rawBytes.Write(b); err != nil {
+				return nil, err
+			}
+		}
 		hdr.Linkname = cString(realname)
 		return hdr, err
 	}
@@ -315,6 +371,12 @@ func parsePAX(r io.Reader) (map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	// leaving this function for io.Reader makes it more testable
+	if tr, ok := r.(*Reader); ok && tr.RawAccounting {
+		if _, err = tr.rawBytes.Write(buf); err != nil {
+			return nil, err
+		}
+	}
 
 	// For GNU PAX sparse format 0.0 support.
 	// This function transforms the sparse format 0.0 headers into sparse format 0.1 headers.
@@ -410,6 +472,10 @@ func (tr *Reader) octal(b []byte) int64 {
 func (tr *Reader) skipUnread() {
 	nr := tr.numBytes() + tr.pad // number of bytes to skip
 	tr.curr, tr.pad = nil, 0
+	if tr.RawAccounting {
+		_, tr.err = io.CopyN(tr.rawBytes, tr.r, nr)
+		return
+	}
 	if sr, ok := tr.r.(io.Seeker); ok {
 		if _, err := sr.Seek(nr, os.SEEK_CUR); err == nil {
 			return
@@ -433,13 +499,35 @@ func (tr *Reader) readHeader() *Header {
 	copy(header, zeroBlock)
 
 	if _, tr.err = io.ReadFull(tr.r, header); tr.err != nil {
+		// because it could read some of the block, but reach EOF first
+		if tr.err == io.EOF && tr.RawAccounting {
+			if _, tr.err = tr.rawBytes.Write(header); tr.err != nil {
+				return nil
+			}
+		}
 		return nil
+	}
+	if tr.RawAccounting {
+		if _, tr.err = tr.rawBytes.Write(header); tr.err != nil {
+			return nil
+		}
 	}
 
 	// Two blocks of zero bytes marks the end of the archive.
 	if bytes.Equal(header, zeroBlock[0:blockSize]) {
 		if _, tr.err = io.ReadFull(tr.r, header); tr.err != nil {
+			// because it could read some of the block, but reach EOF first
+			if tr.err == io.EOF && tr.RawAccounting {
+				if _, tr.err = tr.rawBytes.Write(header); tr.err != nil {
+					return nil
+				}
+			}
 			return nil
+		}
+		if tr.RawAccounting {
+			if _, tr.err = tr.rawBytes.Write(header); tr.err != nil {
+				return nil
+			}
 		}
 		if bytes.Equal(header, zeroBlock[0:blockSize]) {
 			tr.err = io.EOF
@@ -627,6 +715,12 @@ func readGNUSparseMap1x0(r io.Reader) ([]sparseEntry, error) {
 			if _, err := io.ReadFull(r, sparseHeader[oldLen:newLen]); err != nil {
 				return 0, err
 			}
+			// leaving this function for io.Reader makes it more testable
+			if tr, ok := r.(*Reader); ok && tr.RawAccounting {
+				if _, err := tr.rawBytes.Write(sparseHeader[oldLen:newLen]); err != nil {
+					return 0, err
+				}
+			}
 
 			// Look for a newline in the new data
 			nl = bytes.IndexByte(sparseHeader[oldLen:newLen], '\n')
@@ -650,6 +744,12 @@ func readGNUSparseMap1x0(r io.Reader) ([]sparseEntry, error) {
 	// Read the first block
 	if _, err := io.ReadFull(r, sparseHeader); err != nil {
 		return nil, err
+	}
+	// leaving this function for io.Reader makes it more testable
+	if tr, ok := r.(*Reader); ok && tr.RawAccounting {
+		if _, err := tr.rawBytes.Write(sparseHeader); err != nil {
+			return nil, err
+		}
 	}
 
 	// The first line contains the number of entries
