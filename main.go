@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 
@@ -23,6 +22,13 @@ func main() {
 			}
 			defer fh.Close()
 
+			output, err := os.Create(fmt.Sprintf("%s.out", arg))
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer output.Close()
+			log.Printf("writing %q to %q", fh.Name(), output.Name())
+
 			fi, err := fh.Stat()
 			if err != nil {
 				log.Fatal(err)
@@ -40,12 +46,14 @@ func main() {
 					break
 				}
 				pre := tr.RawBytes()
+				output.Write(pre)
 				var i int64
-				if i, err = io.Copy(ioutil.Discard, tr); err != nil {
+				if i, err = io.Copy(output, tr); err != nil {
 					log.Println(err)
 					break
 				}
 				post := tr.RawBytes()
+				output.Write(pre)
 				fmt.Println(hdr.Name, "pre:", len(pre), "read:", i, "post:", len(post))
 				sum += int64(len(pre))
 				sum += i
@@ -54,6 +62,7 @@ func main() {
 
 			if size != sum {
 				fmt.Printf("Size: %d; Sum: %d; Diff: %d\n", size, sum, size-sum)
+				fmt.Printf("Compare like `cmp -bl %s %s | less`\n", fh.Name(), output.Name())
 			} else {
 				fmt.Printf("Size: %d; Sum: %d\n", size, sum)
 			}

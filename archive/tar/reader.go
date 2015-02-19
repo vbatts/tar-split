@@ -666,6 +666,12 @@ func (tr *Reader) readOldGNUSparseMap(header []byte) []sparseEntry {
 		if _, tr.err = io.ReadFull(tr.r, sparseHeader); tr.err != nil {
 			return nil
 		}
+		if tr.RawAccounting {
+			if _, tr.err = tr.rawBytes.Write(sparseHeader); tr.err != nil {
+				return nil
+			}
+		}
+
 		isExtended = sparseHeader[oldGNUSparseExtendedHeaderIsExtendedOffset] != 0
 		s = slicer(sparseHeader)
 		for i := 0; i < oldGNUSparseExtendedHeaderNumEntries; i++ {
