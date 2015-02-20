@@ -8,7 +8,7 @@ import (
 	"log"
 	"os"
 
-	"./archive/tar"
+	"github.com/vbatts/tar-split/archive/tar"
 )
 
 func main() {
