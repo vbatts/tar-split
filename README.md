@@ -28,6 +28,18 @@ Contract
 Do not break the API of stdlib `archive/tar`
 
 
+Std Version
+-----------
+
+The version of golang stdlib `archive/tar` is from go1.4.1, and their master branch around [a9dddb53f](https://github.com/golang/go/tree/a9dddb53f)
+
+
+Docs
+----
+
+https://godoc.org/github.com/vbatts/tar-split/archive/tar
+
+
 Example
 -------
 
