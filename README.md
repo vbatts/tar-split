@@ -91,6 +91,17 @@ ca9e19966b892d9ad5960414abac01ef585a1e22  tar-split.tar
 ca9e19966b892d9ad5960414abac01ef585a1e22  tar-split.tar.out
 ```
 
+What's Next?
+------------
+
+* Package for convenience handling around collecting the RawBytes()
+* Marshalling and storing index, ordering, file size and perhaps relative path of extracted files
+ - perhaps have an API to allow user to provided a `hash.Hash` to checksum and store for the file payloads
+ - though not enabled by default
+ - this way, users wanting to implement an on disk tree validation could do so
+ - but otherwise, we rely on the resulting re-assembled tar be validated
+* Using stored index information, make an API for providing `io.Reader` and perhaps `tar.Reader` from re-assembled tar
+
 License
 -------
 
