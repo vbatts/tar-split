@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 
@@ -18,7 +19,7 @@ func main() {
 			// Open the tar archive
 			fh, err := os.Open(arg)
 			if err != nil {
-				log.Fatal(err)
+				log.Fatal(err, arg)
 			}
 			defer fh.Close()
 
@@ -31,7 +32,7 @@ func main() {
 
 			fi, err := fh.Stat()
 			if err != nil {
-				log.Fatal(err)
+				log.Fatal(err, fh.Name())
 			}
 			size := fi.Size()
 			var sum int64
@@ -68,6 +69,15 @@ func main() {
 
 				fmt.Println(hdr.Name, "pre:", len(pre), "read:", i, "post:", len(post))
 			}
+
+			// it is allowable, and not uncommon that there is further padding on the
+			// end of an archive, apart from the expected 1024 null bytes
+			remainder, err := ioutil.ReadAll(fh)
+			if err != nil && err != io.EOF {
+				log.Fatal(err, fh.Name())
+			}
+			output.Write(remainder)
+			sum += int64(len(remainder))
 
 			if size != sum {
 				fmt.Printf("Size: %d; Sum: %d; Diff: %d\n", size, sum, size-sum)
