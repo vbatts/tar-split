@@ -1,5 +1,5 @@
 Overview
---------
+========
 
 Extend the upstream golang stdlib `archive/tar` library, to expose the raw
 bytes of the TAR, rather than just the marshalled headers and file stream.
@@ -9,7 +9,7 @@ and the raw file payload, one could reassemble the original archive.
 
 
 Caveat
-======
+------
 
 Eventually this should detect TARs that this is not possible with.
 
@@ -23,13 +23,13 @@ precise reassembly is not possible.
 
 
 Contract
-========
+--------
 
 Do not break the API of stdlib `archive/tar`
 
 
 License
-=======
+-------
 
 See LICENSE
 
