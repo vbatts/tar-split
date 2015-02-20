@@ -52,10 +52,8 @@ func (tr *Reader) RawBytes() []byte {
 	if tr.rawBytes == nil {
 		tr.rawBytes = bytes.NewBuffer(nil)
 	}
-	defer func() {
-		// if we've read them, then flush them.
-		tr.rawBytes.Reset()
-	}()
+	// if we've read them, then flush them.
+	defer tr.rawBytes.Reset()
 	return tr.rawBytes.Bytes()
 }
 
