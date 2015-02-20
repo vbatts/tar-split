@@ -45,19 +45,23 @@ func main() {
 					}
 					break
 				}
+
 				pre := tr.RawBytes()
 				output.Write(pre)
+				sum += int64(len(pre))
+
 				var i int64
 				if i, err = io.Copy(output, tr); err != nil {
 					log.Println(err)
 					break
 				}
-				post := tr.RawBytes()
-				output.Write(pre)
-				fmt.Println(hdr.Name, "pre:", len(pre), "read:", i, "post:", len(post))
-				sum += int64(len(pre))
 				sum += i
+
+				post := tr.RawBytes()
+				output.Write(post)
 				sum += int64(len(post))
+
+				fmt.Println(hdr.Name, "pre:", len(pre), "read:", i, "post:", len(post))
 			}
 
 			if size != sum {
