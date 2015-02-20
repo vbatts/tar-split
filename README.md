@@ -94,6 +94,7 @@ ca9e19966b892d9ad5960414abac01ef585a1e22  tar-split.tar.out
 What's Next?
 ------------
 
+* Add tests for different types of tar options/extensions
 * Package for convenience handling around collecting the RawBytes()
 * Marshalling and storing index, ordering, file size and perhaps relative path of extracted files
  - perhaps have an API to allow user to provided a `hash.Hash` to checksum and store for the file payloads
