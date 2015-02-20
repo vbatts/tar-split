@@ -19,6 +19,7 @@ Therefore when adding the file payload to a reassembled tar, to achieve
 identical output, the file payload would need be precisely re-sparsified. This
 is not something I seek to fix imediately, but would rather have an alert that
 precise reassembly is not possible.
+(see more http://www.gnu.org/software/tar/manual/html_node/Sparse-Formats.html)
 
 
 Contract
