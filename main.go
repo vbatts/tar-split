@@ -43,6 +43,11 @@ func main() {
 					if err != io.EOF {
 						log.Println(err)
 					}
+					// even when an EOF is reached, there is often 1024 null bytes on
+					// the end of an archive. Collect them too.
+					post := tr.RawBytes()
+					output.Write(post)
+					sum += int64(len(post))
 					break
 				}
 
