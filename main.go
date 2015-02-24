@@ -65,6 +65,7 @@ func main() {
 				}
 				sum += i
 
+				// I've never seen this be populated
 				post := tr.RawBytes()
 				output.Write(post)
 				sum += int64(len(post))
@@ -80,6 +81,7 @@ func main() {
 			}
 			output.Write(remainder)
 			sum += int64(len(remainder))
+			fmt.Printf("Remainder: %d\n", len(remainder))
 
 			if size != sum {
 				fmt.Printf("Size: %d; Sum: %d; Diff: %d\n", size, sum, size-sum)
