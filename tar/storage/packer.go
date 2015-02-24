@@ -89,3 +89,13 @@ func NewJsonPacker(w io.Writer) Packer {
 		e: json.NewEncoder(w),
 	}
 }
+
+/*
+TODO(vbatts) perhaps have a more compact packer/unpacker, maybe using msgapck
+(https://github.com/ugorji/go)
+
+
+Even though, since our jsonUnpacker and jsonPacker just take
+io.Reader/io.Writer, then we can get away with passing them a
+gzip.Reader/gzip.Writer
+*/
