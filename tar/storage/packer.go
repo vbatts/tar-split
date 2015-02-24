@@ -6,26 +6,24 @@ import (
 	"io"
 )
 
+// Packer describes the methods to pack Entries to a storage destination
 type Packer interface {
-	// AddSegment packs the segment bytes provided and returns the position of
-	// the entry
-	//AddSegment([]byte) (int, error)
-	// AddFile packs the File provided and returns the position of the entry. The
-	// Position is set in the stored File.
-	//AddFile(File) (int, error)
-
-	//
+	// AddEntry packs the Entry and returns its position
 	AddEntry(e Entry) (int, error)
 }
 
+// Unpacker describes the methods to read Entries from a source
 type Unpacker interface {
+	// Next returns the next Entry being unpacked, or error, until io.EOF
 	Next() (*Entry, error)
 }
 
+/* TODO(vbatts) figure out a good model for this
 type PackUnpacker interface {
 	Packer
 	Unpacker
 }
+*/
 
 type jsonUnpacker struct {
 	r     io.Reader
@@ -55,8 +53,10 @@ func (jup *jsonUnpacker) Next() (*Entry, error) {
 	return &e, err
 }
 
-// jsonUnpacker writes each entry (SegmentType and FileType) as a json document.
-// Each entry on a new line.
+// NewJsonUnpacker provides an Unpacker that reads Entries (SegmentType and
+// FileType) as a json document.
+//
+// Each Entry read are expected to be delimited by new line.
 func NewJsonUnpacker(r io.Reader) Unpacker {
 	return &jsonUnpacker{
 		r: r,
@@ -79,6 +79,10 @@ func (jp *jsonPacker) AddEntry(e Entry) (int, error) {
 	return e.Position, err
 }
 
+// NewJsonPacker provides an Packer that writes each Entry (SegmentType and
+// FileType) as a json document.
+//
+// The Entries are delimited by new line.
 func NewJsonPacker(w io.Writer) Packer {
 	return &jsonPacker{
 		w: w,

@@ -22,6 +22,8 @@ const (
 	SegmentType
 )
 
+// Entry is a the structure for packing and unpacking the information read from
+// the Tar archive.
 type Entry struct {
 	Type     Type   `json:"type"`
 	Name     string `json:"name",omitempty`
