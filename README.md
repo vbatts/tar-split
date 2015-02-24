@@ -37,7 +37,8 @@ The version of golang stdlib `archive/tar` is from go1.4.1, and their master bra
 Docs
 ----
 
-https://godoc.org/github.com/vbatts/tar-split/archive/tar
+* https://godoc.org/github.com/vbatts/tar-split/archive/tar
+* https://godoc.org/github.com/vbatts/tar-split/tar/storage
 
 
 Example
