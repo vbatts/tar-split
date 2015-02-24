@@ -39,8 +39,8 @@ func TestJsonPackerUnpacker(t *testing.T) {
 		}
 	}()
 
-	t.Errorf("%#v", b.String())
 	b = bytes.NewBuffer(b.Bytes())
+	entries := Entries{}
 	func() {
 		jup := NewJsonUnpacker(b)
 		for {
@@ -51,8 +51,12 @@ func TestJsonPackerUnpacker(t *testing.T) {
 				}
 				t.Error(err)
 			}
-			t.Errorf("%#v", entry)
+			entries = append(entries, *entry)
+			t.Logf("got %#v", entry)
 		}
 	}()
+	if len(entries) != len(e) {
+		t.Errorf("expected %d entries, got %d", len(e), len(entries))
+	}
 
 }
