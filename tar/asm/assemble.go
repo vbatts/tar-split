@@ -2,13 +2,11 @@ package asm
 
 import (
 	"io"
-	"os"
-	"path"
 
 	"github.com/vbatts/tar-split/tar/storage"
 )
 
-func NewTarStream(relpath string, up storage.Unpacker) io.ReadCloser {
+func NewTarStream(fg FileGetter, up storage.Unpacker) io.ReadCloser {
 	pr, pw := io.Pipe()
 	go func() {
 		for {
@@ -24,7 +22,16 @@ func NewTarStream(relpath string, up storage.Unpacker) io.ReadCloser {
 					break
 				}
 			case storage.FileType:
-				if err := writeEntryFromRelPath(pw, relpath, entry); err != nil {
+				if entry.Size == 0 {
+					continue
+				}
+				fh, err := fg.Get(entry.Name)
+				if err != nil {
+					pw.CloseWithError(err)
+					break
+				}
+				defer fh.Close()
+				if _, err := io.Copy(pw, fh); err != nil {
 					pw.CloseWithError(err)
 					break
 				}
@@ -32,22 +39,4 @@ func NewTarStream(relpath string, up storage.Unpacker) io.ReadCloser {
 		}
 	}()
 	return pr
-}
-
-func writeEntryFromRelPath(w io.Writer, root string, entry *storage.Entry) error {
-	if entry.Size == 0 {
-		return nil
-	}
-
-	// FIXME might should have a check for '../../../../etc/passwd' attempts?
-	fh, err := os.Open(path.Join(root, entry.Name))
-	if err != nil {
-		return err
-	}
-	defer fh.Close()
-	if _, err := io.Copy(w, fh); err != nil {
-		return err
-	}
-
-	return nil
 }

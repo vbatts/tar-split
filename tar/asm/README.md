@@ -5,6 +5,21 @@ This library for assembly and disassembly of tar archives, facilitated by
 `github.com/vbatts/tar-split/tar/storage`.
 
 
+Concerns
+--------
+
+For completely safe assembly/disassembly, there will need to be a CAS
+directory, that maps to a checksum in the `storage.Entity` of
+`storage.FileType`.
+
+This is due to the fact that tar archives _can_ allow multiple records for the
+same path, but the last one effectively wins. Even if the prior records had a
+different payload. 
+
+In this way, when assembling an archive from relative paths, if the archive has
+multiple entries for the same path, then all payloads read in from a relative
+path would be identical.
+
 
 Thoughts
 --------
