@@ -24,10 +24,19 @@ path would be identical.
 Thoughts
 --------
 
-While the initial implementation is based on a relative path, I'm thinking the
-next step is to have something like a FileGetter interface, of which a path
-based getter is just one type.
+Have a look-aside directory or storage. This way when a clobbering record is
+encountered from the tar stream, then the payload of the prior/existing file is
+stored to the CAS. This way the clobbering record's file payload can be
+extracted, but we'll have preserved the payload needed to reassemble a precise
+tar archive.
 
-Then you could pass a path based Getter and an Unpacker, and receive a
-io.Reader that is your tar stream.
+clobbered/path/to/file.[0-N]
+
+*alternatively*
+
+We could just _not_ support tar streams that have clobbering file paths.
+Appending records to the archive is not incredibly common, and doesn't happen
+by default for most implementations.  Not supporting them wouldn't be a
+security concern either, as if it did occur, we would reassemble an archive
+that doesn't validate signature/checksum, so it shouldn't be trusted anyway.
 
