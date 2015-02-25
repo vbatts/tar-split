@@ -40,3 +40,5 @@ by default for most implementations.  Not supporting them wouldn't be a
 security concern either, as if it did occur, we would reassemble an archive
 that doesn't validate signature/checksum, so it shouldn't be trusted anyway.
 
+Otherwise, this will allow us to defer support for appended files as a FUTURE FEATURE.
+
