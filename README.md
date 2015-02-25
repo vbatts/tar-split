@@ -39,6 +39,7 @@ Docs
 
 * https://godoc.org/github.com/vbatts/tar-split/archive/tar
 * https://godoc.org/github.com/vbatts/tar-split/tar/storage
+* https://godoc.org/github.com/vbatts/tar-split/tar/asm
 
 
 Example
