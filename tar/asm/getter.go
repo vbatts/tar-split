@@ -1,6 +1,8 @@
 package asm
 
 import (
+	"bytes"
+	"errors"
 	"io"
 	"os"
 	"path"
@@ -13,7 +15,7 @@ type FileGetter interface {
 
 type FilePutter interface {
 	// Put returns a stream for the provided file path
-	Put(string, io.Writer) error
+	Put(string, io.Reader) error
 }
 
 type FileGetPutter interface {
@@ -40,16 +42,29 @@ type bufferFileGetPutter struct {
 }
 
 func (bfgp bufferFileGetPutter) Get(name string) (io.ReadCloser, error) {
-
+	if _, ok := bfgp.files[name]; !ok {
+		return nil, errors.New("no such file")
+	}
+	b := bytes.NewBuffer(bfgp.files[name])
+	return &readCloserWrapper{b}, nil
 }
 
-type writeCloserWrapper struct {
-	io.Writer
-	closer func() error
+func (bfgp *bufferFileGetPutter) Put(name string, r io.Reader) error {
+	b := bytes.NewBuffer([]byte{})
+	if _, err := io.Copy(b, r); err != nil {
+		return err
+	}
+	bfgp.files[name] = b.Bytes()
+	return nil
 }
 
-func (w *nopWriteCloser) Close() error { return nil }
+type readCloserWrapper struct {
+	io.Reader
+}
 
+func (w *readCloserWrapper) Close() error { return nil }
+
+// NewBufferFileGetPutter is simple in memory FileGetPutter
 func NewBufferFileGetPutter() FileGetPutter {
 	return &bufferFileGetPutter{}
 }
