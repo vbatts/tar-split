@@ -3,7 +3,13 @@ package storage
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"io"
+	"path"
+)
+
+var (
+	ErrDuplicatePath = errors.New("duplicates of file paths not supported")
 )
 
 // Packer describes the methods to pack Entries to a storage destination
@@ -29,6 +35,7 @@ type jsonUnpacker struct {
 	r     io.Reader
 	b     *bufio.Reader
 	isEOF bool
+	seen  seenNames
 }
 
 func (jup *jsonUnpacker) Next() (*Entry, error) {
@@ -45,11 +52,22 @@ func (jup *jsonUnpacker) Next() (*Entry, error) {
 	} else if err == io.EOF {
 		jup.isEOF = true
 	}
+
 	err = json.Unmarshal(line, &e)
 	if err != nil && jup.isEOF {
 		// if the remainder actually _wasn't_ a remaining json structure, then just EOF
 		return nil, io.EOF
 	}
+
+	// check for dup name
+	if e.Type == FileType {
+		cName := path.Clean(e.Name)
+		if _, ok := jup.seen[cName]; ok {
+			return nil, ErrDuplicatePath
+		}
+		jup.seen[cName] = emptyByte
+	}
+
 	return &e, err
 }
 
@@ -59,24 +77,44 @@ func (jup *jsonUnpacker) Next() (*Entry, error) {
 // Each Entry read are expected to be delimited by new line.
 func NewJsonUnpacker(r io.Reader) Unpacker {
 	return &jsonUnpacker{
-		r: r,
-		b: bufio.NewReader(r),
+		r:    r,
+		b:    bufio.NewReader(r),
+		seen: seenNames{},
 	}
 }
 
 type jsonPacker struct {
-	w   io.Writer
-	e   *json.Encoder
-	pos int
+	w    io.Writer
+	e    *json.Encoder
+	pos  int
+	seen seenNames
 }
 
+type seenNames map[string]byte
+
+// used in the seenNames map. byte is a uint8, and we'll re-use the same one
+// for minimalism.
+const emptyByte byte = 0
+
 func (jp *jsonPacker) AddEntry(e Entry) (int, error) {
+	// check early for dup name
+	if e.Type == FileType {
+		cName := path.Clean(e.Name)
+		if _, ok := jp.seen[cName]; ok {
+			return -1, ErrDuplicatePath
+		}
+		jp.seen[cName] = emptyByte
+	}
+
 	e.Position = jp.pos
 	err := jp.e.Encode(e)
-	if err == nil {
-		jp.pos++
+	if err != nil {
+		return -1, err
 	}
-	return e.Position, err
+
+	// made it this far, increment now
+	jp.pos++
+	return e.Position, nil
 }
 
 // NewJsonPacker provides an Packer that writes each Entry (SegmentType and
@@ -85,8 +123,9 @@ func (jp *jsonPacker) AddEntry(e Entry) (int, error) {
 // The Entries are delimited by new line.
 func NewJsonPacker(w io.Writer) Packer {
 	return &jsonPacker{
-		w: w,
-		e: json.NewEncoder(w),
+		w:    w,
+		e:    json.NewEncoder(w),
+		seen: seenNames{},
 	}
 }
 

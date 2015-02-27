@@ -7,6 +7,39 @@ import (
 	"testing"
 )
 
+func TestDuplicateFail(t *testing.T) {
+	e := []Entry{
+		Entry{
+			Type:    FileType,
+			Name:    "./hurr.txt",
+			Payload: []byte("abcde"),
+		},
+		Entry{
+			Type:    FileType,
+			Name:    "./hurr.txt",
+			Payload: []byte("deadbeef"),
+		},
+		Entry{
+			Type:    FileType,
+			Name:    "hurr.txt", // slightly different path, same file though
+			Payload: []byte("deadbeef"),
+		},
+	}
+	buf := []byte{}
+	b := bytes.NewBuffer(buf)
+
+	jp := NewJsonPacker(b)
+	if _, err := jp.AddEntry(e[0]); err != nil {
+		t.Error(err)
+	}
+	if _, err := jp.AddEntry(e[1]); err != ErrDuplicatePath {
+		t.Errorf("expected failure on duplicate path")
+	}
+	if _, err := jp.AddEntry(e[2]); err != ErrDuplicatePath {
+		t.Errorf("expected failure on duplicate path")
+	}
+}
+
 func TestJsonPackerUnpacker(t *testing.T) {
 	e := []Entry{
 		Entry{
