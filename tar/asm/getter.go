@@ -65,6 +65,11 @@ type readCloserWrapper struct {
 func (w *readCloserWrapper) Close() error { return nil }
 
 // NewBufferFileGetPutter is simple in memory FileGetPutter
+//
+// Implication is this is memory intensive...
+// Probably best for testing or light weight cases.
 func NewBufferFileGetPutter() FileGetPutter {
-	return &bufferFileGetPutter{}
+	return &bufferFileGetPutter{
+		files: map[string][]byte{},
+	}
 }
