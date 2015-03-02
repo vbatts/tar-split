@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"io/ioutil"
 	"os"
 	"path"
 )
@@ -72,4 +73,17 @@ func NewBufferFileGetPutter() FileGetPutter {
 	return &bufferFileGetPutter{
 		files: map[string][]byte{},
 	}
+}
+
+// NewDiscardFilePutter is a bit bucket FilePutter
+func NewDiscardFilePutter() FilePutter {
+	return &bitBucketFilePutter{}
+}
+
+type bitBucketFilePutter struct {
+}
+
+func (bbfp *bitBucketFilePutter) Put(name string, r io.Reader) error {
+	_, err := io.Copy(ioutil.Discard, r)
+	return err
 }

@@ -6,7 +6,18 @@ import (
 	"github.com/vbatts/tar-split/tar/storage"
 )
 
-func NewTarStream(fg FileGetter, up storage.Unpacker) io.ReadCloser {
+// NewOutputTarStream returns an io.ReadCloser that is an assemble tar archive
+// stream.
+//
+// It takes a FileGetter, for mapping the file payloads that are to be read in,
+// and a storage.Unpacker, which has access to the rawbytes and file order
+// metadata. With the combination of these two items, a precise assembled Tar
+// archive is possible.
+func NewOutputTarStream(fg FileGetter, up storage.Unpacker) io.ReadCloser {
+	// ... Since these are interfaces, this is possible, so let's not have a nil pointer
+	if fg == nil || up == nil {
+		return nil
+	}
 	pr, pw := io.Pipe()
 	go func() {
 		for {

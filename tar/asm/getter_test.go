@@ -31,3 +31,17 @@ func TestGetter(t *testing.T) {
 		}
 	}
 }
+func TestPutter(t *testing.T) {
+	fp := NewDiscardFilePutter()
+	files := map[string][]byte{
+		"file1.txt": []byte("foo"),
+		"file2.txt": []byte("bar"),
+		"file3.txt": []byte("baz"),
+		"file4.txt": []byte("bif"),
+	}
+	for n, b := range files {
+		if err := fp.Put(n, bytes.NewBuffer(b)); err != nil {
+			t.Error(err)
+		}
+	}
+}
