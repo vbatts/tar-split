@@ -2,12 +2,21 @@ package asm
 
 import (
 	"io"
+	"io/ioutil"
 
 	"github.com/vbatts/tar-split/archive/tar"
 	"github.com/vbatts/tar-split/tar/storage"
 )
 
-func NewInputTarStream(r io.Reader, fp FilePutter, p storage.Packer) (io.Reader, error) {
+// NewInputTarStream wraps the Reader stream of a tar archive and provides a
+// Reader stream of the same.
+//
+// In the middle it will pack the segments and file metadata to storage.Packer
+// `p`.
+//
+// The the FilePutter is where payload of files in the stream are stashed. If
+// this stashing is not needed, fp can be nil or use NewDiscardFilePutter.
+func NewInputTarStream(r io.Reader, p storage.Packer, fp FilePutter) (io.Reader, error) {
 	// What to do here... folks will want their own access to the Reader that is
 	// their tar archive stream, but we'll need that same stream to use our
 	// forked 'archive/tar'.
@@ -27,8 +36,90 @@ func NewInputTarStream(r io.Reader, fp FilePutter, p storage.Packer) (io.Reader,
 	pR, pW := io.Pipe()
 	outputRdr := io.TeeReader(r, pW)
 
-	tr := tar.NewReader(outputRdr)
-	tr.RawAccounting = true
+	go func() {
+		tr := tar.NewReader(outputRdr)
+		tr.RawAccounting = true
+		for {
+			hdr, err := tr.Next()
+			if err != nil {
+				if err != io.EOF {
+					pW.CloseWithError(err)
+					return
+				}
+				// even when an EOF is reached, there is often 1024 null bytes on
+				// the end of an archive. Collect them too.
+				_, err := p.AddEntry(storage.Entry{
+					Type:    storage.SegmentType,
+					Payload: tr.RawBytes(),
+				})
+				if err != nil {
+					pW.CloseWithError(err)
+				} else {
+					pW.Close()
+				}
+				return
+			}
+
+			if _, err := p.AddEntry(storage.Entry{
+				Type:    storage.SegmentType,
+				Payload: tr.RawBytes(),
+			}); err != nil {
+				pW.CloseWithError(err)
+			}
+
+			if hdr.Size > 0 {
+				if fp != nil {
+					// if there is a file payload to write, then write the file to the FilePutter
+					fileRdr, fileWrtr := io.Pipe()
+					go func() {
+						if err := fp.Put(hdr.Name, fileRdr); err != nil {
+							pW.CloseWithError(err)
+						}
+					}()
+					if _, err = io.Copy(fileWrtr, tr); err != nil {
+						pW.CloseWithError(err)
+						return
+					}
+				} else {
+					if _, err := io.Copy(ioutil.Discard, tr); err != nil {
+						pW.CloseWithError(err)
+						return
+					}
+				}
+			}
+			// File entries added, regardless of size
+			if _, err := p.AddEntry(storage.Entry{
+				Type: storage.FileType,
+				Name: hdr.Name,
+				Size: hdr.Size,
+			}); err != nil {
+				pW.CloseWithError(err)
+			}
+
+			if _, err := p.AddEntry(storage.Entry{
+				Type:    storage.SegmentType,
+				Payload: tr.RawBytes(),
+			}); err != nil {
+				pW.CloseWithError(err)
+			}
+		}
+
+		// it is allowable, and not uncommon that there is further padding on the
+		// end of an archive, apart from the expected 1024 null bytes
+		remainder, err := ioutil.ReadAll(outputRdr)
+		if err != nil && err != io.EOF {
+			pW.CloseWithError(err)
+		}
+		_, err = p.AddEntry(storage.Entry{
+			Type:    storage.SegmentType,
+			Payload: remainder,
+		})
+		if err != nil {
+			pW.CloseWithError(err)
+		} else {
+			pW.Close()
+		}
+	}()
 
 	return pR, nil
 }
