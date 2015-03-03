@@ -1,6 +1,9 @@
 package asm
 
 import (
+	"bytes"
+	"fmt"
+	"hash/crc64"
 	"io"
 
 	"github.com/vbatts/tar-split/tar/storage"
@@ -42,8 +45,14 @@ func NewOutputTarStream(fg FileGetter, up storage.Unpacker) io.ReadCloser {
 					break
 				}
 				defer fh.Close()
-				if _, err := io.Copy(pw, fh); err != nil {
+				c := crc64.New(crcTable)
+				tRdr := io.TeeReader(fh, c)
+				if _, err := io.Copy(pw, tRdr); err != nil {
 					pw.CloseWithError(err)
+					break
+				}
+				if !bytes.Equal(c.Sum(nil), entry.Payload) {
+					pw.CloseWithError(fmt.Errorf("file integrity checksum failed for %q", entry.Name))
 					break
 				}
 			}

@@ -36,6 +36,10 @@ func NewInputTarStream(r io.Reader, p storage.Packer, fp FilePutter) (io.Reader,
 	pR, pW := io.Pipe()
 	outputRdr := io.TeeReader(r, pW)
 
+	if fp == nil {
+		fp = NewDiscardFilePutter()
+	}
+
 	go func() {
 		tr := tar.NewReader(outputRdr)
 		tr.RawAccounting = true
@@ -67,31 +71,28 @@ func NewInputTarStream(r io.Reader, p storage.Packer, fp FilePutter) (io.Reader,
 				pW.CloseWithError(err)
 			}
 
+			var csum []byte
 			if hdr.Size > 0 {
-				if fp != nil {
-					// if there is a file payload to write, then write the file to the FilePutter
-					fileRdr, fileWrtr := io.Pipe()
-					go func() {
-						if err := fp.Put(hdr.Name, fileRdr); err != nil {
-							pW.CloseWithError(err)
-						}
-					}()
-					if _, err = io.Copy(fileWrtr, tr); err != nil {
+				// if there is a file payload to write, then write the file to the FilePutter
+				fileRdr, fileWrtr := io.Pipe()
+				go func() {
+					var err error
+					csum, err = fp.Put(hdr.Name, fileRdr)
+					if err != nil {
 						pW.CloseWithError(err)
-						return
 					}
-				} else {
-					if _, err := io.Copy(ioutil.Discard, tr); err != nil {
-						pW.CloseWithError(err)
-						return
-					}
+				}()
+				if _, err = io.Copy(fileWrtr, tr); err != nil {
+					pW.CloseWithError(err)
+					return
 				}
 			}
 			// File entries added, regardless of size
 			if _, err := p.AddEntry(storage.Entry{
-				Type: storage.FileType,
-				Name: hdr.Name,
-				Size: hdr.Size,
+				Type:    storage.FileType,
+				Name:    hdr.Name,
+				Size:    hdr.Size,
+				Payload: csum,
 			}); err != nil {
 				pW.CloseWithError(err)
 			}
