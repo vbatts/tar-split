@@ -52,6 +52,9 @@ func NewOutputTarStream(fg FileGetter, up storage.Unpacker) io.ReadCloser {
 					break
 				}
 				if !bytes.Equal(c.Sum(nil), entry.Payload) {
+					// I would rather this be a comparable ErrInvalidChecksum or such,
+					// but since it's coming through the PipeReader, the context of
+					// _which_ file would be lost...
 					pw.CloseWithError(fmt.Errorf("file integrity checksum failed for %q", entry.Name))
 					break
 				}
