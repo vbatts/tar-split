@@ -36,6 +36,7 @@ func NewInputTarStream(r io.Reader, p storage.Packer, fp FilePutter) (io.Reader,
 	pR, pW := io.Pipe()
 	outputRdr := io.TeeReader(r, pW)
 
+	// we need a putter that will generate the crc64 sums of file payloads
 	if fp == nil {
 		fp = NewDiscardFilePutter()
 	}
@@ -58,10 +59,8 @@ func NewInputTarStream(r io.Reader, p storage.Packer, fp FilePutter) (io.Reader,
 				})
 				if err != nil {
 					pW.CloseWithError(err)
-				} else {
-					pW.Close()
 				}
-				return
+				break // not return. We need the end of the reader.
 			}
 
 			if _, err := p.AddEntry(storage.Entry{
@@ -77,7 +76,7 @@ func NewInputTarStream(r io.Reader, p storage.Packer, fp FilePutter) (io.Reader,
 				fileRdr, fileWrtr := io.Pipe()
 				go func() {
 					var err error
-					csum, err = fp.Put(hdr.Name, fileRdr)
+					_, csum, err = fp.Put(hdr.Name, fileRdr)
 					if err != nil {
 						pW.CloseWithError(err)
 					}
@@ -86,27 +85,30 @@ func NewInputTarStream(r io.Reader, p storage.Packer, fp FilePutter) (io.Reader,
 					pW.CloseWithError(err)
 					return
 				}
+				fileWrtr.Close()
 			}
 			// File entries added, regardless of size
-			if _, err := p.AddEntry(storage.Entry{
+			_, err = p.AddEntry(storage.Entry{
 				Type:    storage.FileType,
 				Name:    hdr.Name,
 				Size:    hdr.Size,
 				Payload: csum,
-			}); err != nil {
+			})
+			if err != nil {
 				pW.CloseWithError(err)
 			}
 
-			if _, err := p.AddEntry(storage.Entry{
+			_, err = p.AddEntry(storage.Entry{
 				Type:    storage.SegmentType,
 				Payload: tr.RawBytes(),
-			}); err != nil {
+			})
+			if err != nil {
 				pW.CloseWithError(err)
 			}
 		}
 
 		// it is allowable, and not uncommon that there is further padding on the
-		// end of an archive, apart from the expected 1024 null bytes
+		// end of an archive, apart from the expected 1024 null bytes.
 		remainder, err := ioutil.ReadAll(outputRdr)
 		if err != nil && err != io.EOF {
 			pW.CloseWithError(err)

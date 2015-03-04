@@ -14,7 +14,7 @@ func TestGetter(t *testing.T) {
 	}
 	for n, b := range files {
 		for body, sum := range b {
-			csum, err := fgp.Put(n, bytes.NewBufferString(body))
+			_, csum, err := fgp.Put(n, bytes.NewBufferString(body))
 			if err != nil {
 				t.Error(err)
 			}
@@ -50,7 +50,7 @@ func TestPutter(t *testing.T) {
 	}
 	for n, b := range files {
 		for body, sum := range b {
-			csum, err := fp.Put(n, bytes.NewBufferString(body))
+			_, csum, err := fp.Put(n, bytes.NewBufferString(body))
 			if err != nil {
 				t.Error(err)
 			}

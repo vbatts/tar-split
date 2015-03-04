@@ -16,8 +16,8 @@ type FileGetter interface {
 }
 
 type FilePutter interface {
-	// Put returns a stream for the provided file path
-	Put(string, io.Reader) ([]byte, error)
+	// Put returns the crc64 checksum for the provided file
+	Put(string, io.Reader) (int64, []byte, error)
 }
 
 type FileGetPutter interface {
@@ -51,15 +51,16 @@ func (bfgp bufferFileGetPutter) Get(name string) (io.ReadCloser, error) {
 	return &readCloserWrapper{b}, nil
 }
 
-func (bfgp *bufferFileGetPutter) Put(name string, r io.Reader) ([]byte, error) {
+func (bfgp *bufferFileGetPutter) Put(name string, r io.Reader) (int64, []byte, error) {
 	c := crc64.New(crcTable)
 	tRdr := io.TeeReader(r, c)
 	b := bytes.NewBuffer([]byte{})
-	if _, err := io.Copy(b, tRdr); err != nil {
-		return nil, err
+	i, err := io.Copy(b, tRdr)
+	if err != nil {
+		return 0, nil, err
 	}
 	bfgp.files[name] = b.Bytes()
-	return c.Sum(nil), nil
+	return i, c.Sum(nil), nil
 }
 
 type readCloserWrapper struct {
@@ -86,11 +87,11 @@ func NewDiscardFilePutter() FilePutter {
 type bitBucketFilePutter struct {
 }
 
-func (bbfp *bitBucketFilePutter) Put(name string, r io.Reader) ([]byte, error) {
+func (bbfp *bitBucketFilePutter) Put(name string, r io.Reader) (int64, []byte, error) {
 	c := crc64.New(crcTable)
 	tRdr := io.TeeReader(r, c)
-	_, err := io.Copy(ioutil.Discard, tRdr)
-	return c.Sum(nil), err
+	i, err := io.Copy(ioutil.Discard, tRdr)
+	return i, c.Sum(nil), err
 }
 
 var crcTable = crc64.MakeTable(crc64.ISO)
