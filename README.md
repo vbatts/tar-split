@@ -22,6 +22,11 @@ precise reassembly is not possible.
 (see more http://www.gnu.org/software/tar/manual/html_node/Sparse-Formats.html)
 
 
+Other caveat, while tar archives support having multiple file entries for the
+same path, we will not support this feature. If there are more than one entries
+with the same path, expect an err (like `ErrDuplicatePath`) or a resulting tar
+stream that does not validate your original checksum/signature.
+
 Contract
 --------
 
