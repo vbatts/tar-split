@@ -60,6 +60,7 @@ func NewOutputTarStream(fg FileGetter, up storage.Unpacker) io.ReadCloser {
 				}
 			}
 		}
+		pw.Close()
 	}()
 	return pr
 }

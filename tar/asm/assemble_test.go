@@ -19,24 +19,12 @@ var entries = []struct {
 }{
 	{
 		Entry: storage.Entry{
-			Type:    storage.SegmentType,
-			Payload: []byte("y'all"), // FIXME need real header here
-		},
-	},
-	{
-		Entry: storage.Entry{
 			Type:    storage.FileType,
 			Name:    "./hurr.txt",
 			Payload: []byte{2, 116, 164, 177, 171, 236, 107, 78},
 			Size:    20,
 		},
 		Body: []byte("imma hurr til I derp"),
-	},
-	{
-		Entry: storage.Entry{
-			Type:    storage.SegmentType,
-			Payload: []byte("doin"), // FIXME need real header here
-		},
 	},
 	{
 		Entry: storage.Entry{
@@ -48,72 +36,9 @@ var entries = []struct {
 
 		Body: []byte("café con leche, por favor"),
 	},
-	{
-		Entry: storage.Entry{
-			Type: storage.SegmentType,
-			Payload: []byte{00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00,
-				00, 00},
-		},
-	},
 }
 
-func TestTarStream(t *testing.T) {
+func TestTarStreamOld(t *testing.T) {
 	fgp := NewBufferFileGetPutter()
 
 	// first lets prep a GetPutter and Packer
@@ -143,7 +68,7 @@ func TestTarStream(t *testing.T) {
 	// TODO finish this
 }
 
-func TestInputTarStream(t *testing.T) {
+func TestTarStream(t *testing.T) {
 	var (
 		expectedSum        = "1eb237ff69bca6e22789ecb05b45d35ca307adbd"
 		expectedSize int64 = 10240
@@ -165,22 +90,18 @@ func TestInputTarStream(t *testing.T) {
 	sp := storage.NewJsonPacker(w)
 	fgp := NewBufferFileGetPutter()
 
-	// check the tar on the front end too
-	h0 := sha1.New()
-	tRdr0 := io.TeeReader(gzRdr, h0)
-
 	// wrap the disassembly stream
-	tarStream, err := NewInputTarStream(tRdr0, sp, fgp)
+	tarStream, err := NewInputTarStream(gzRdr, sp, fgp)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// get a sum of the stream after it has passed through to ensure it's the same.
-	h1 := sha1.New()
-	tRdr1 := io.TeeReader(tarStream, h1)
+	h0 := sha1.New()
+	tRdr0 := io.TeeReader(tarStream, h0)
 
 	// read it all to the bit bucket
-	i, err := io.Copy(ioutil.Discard, tRdr1)
+	i, err := io.Copy(ioutil.Discard, tRdr0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -188,10 +109,32 @@ func TestInputTarStream(t *testing.T) {
 	if i != expectedSize {
 		t.Errorf("size of tar: expected %d; got %d", expectedSize, i)
 	}
-
-	if fmt.Sprintf("%x", h1.Sum(nil)) != expectedSum {
-		t.Logf("h0 was %x", h0.Sum(nil))
-		t.Errorf("checksum of tar: expected %q; got %x", expectedSum, h1.Sum(nil))
+	if fmt.Sprintf("%x", h0.Sum(nil)) != expectedSum {
+		t.Fatalf("checksum of tar: expected %s; got %x", expectedSum, h0.Sum(nil))
 	}
 
+	t.Logf("%s", w.String()) // if we fail, then show the packed info
+
+	// If we've made it this far, then we'll turn it around and create a tar
+	// stream from the packed metadata and buffered file contents.
+	r := bytes.NewBuffer(w.Bytes())
+	sup := storage.NewJsonUnpacker(r)
+	// and reuse the fgp that we Put the payloads to.
+
+	rc := NewOutputTarStream(fgp, sup)
+	h1 := sha1.New()
+	tRdr1 := io.TeeReader(rc, h1)
+
+	// read it all to the bit bucket
+	i, err = io.Copy(ioutil.Discard, tRdr1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if i != expectedSize {
+		t.Errorf("size of output tar: expected %d; got %d", expectedSize, i)
+	}
+	if fmt.Sprintf("%x", h1.Sum(nil)) != expectedSum {
+		t.Fatalf("checksum of output tar: expected %s; got %x", expectedSum, h1.Sum(nil))
+	}
 }
