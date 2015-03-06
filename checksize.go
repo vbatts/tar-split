@@ -66,7 +66,7 @@ func main() {
 				log.Fatal(err)
 			}
 		}
-		fmt.Printf(" -- number of files: %dk\n", num)
+		fmt.Printf(" -- number of files: %d\n", num)
 
 		if err := packFh.Sync(); err != nil {
 			log.Fatal(err)
