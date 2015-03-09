@@ -14,8 +14,10 @@ import (
 // In the middle it will pack the segments and file metadata to storage.Packer
 // `p`.
 //
-// The the storage.FilePutter is where payload of files in the stream are stashed. If
-// this stashing is not needed, fp can be nil or use storage.NewDiscardFilePutter.
+// The the storage.FilePutter is where payload of files in the stream are
+// stashed. If this stashing is not needed, you can provide a nil
+// storage.FilePutter. Since the checksumming is still needed, then a default
+// of NewDiscardFilePutter will be used internally
 func NewInputTarStream(r io.Reader, p storage.Packer, fp storage.FilePutter) (io.Reader, error) {
 	// What to do here... folks will want their own access to the Reader that is
 	// their tar archive stream, but we'll need that same stream to use our
