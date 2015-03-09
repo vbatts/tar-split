@@ -27,10 +27,12 @@ same path, we will not support this feature. If there are more than one entries
 with the same path, expect an err (like `ErrDuplicatePath`) or a resulting tar
 stream that does not validate your original checksum/signature.
 
+
 Contract
 --------
 
-Do not break the API of stdlib `archive/tar`
+Do not break the API of stdlib `archive/tar` in our fork (ideally find an
+upstream mergeable solution)
 
 
 Std Version
@@ -113,14 +115,9 @@ ca9e19966b892d9ad5960414abac01ef585a1e22  tar-split.tar.out
 What's Next?
 ------------
 
-* Add tests for different types of tar options/extensions
-* Package for convenience handling around collecting the RawBytes()
-* Marshalling and storing index, ordering, file size and perhaps relative path of extracted files
- - perhaps have an API to allow user to provided a `hash.Hash` to checksum and store for the file payloads
- - though not enabled by default
- - this way, users wanting to implement an on disk tree validation could do so
- - but otherwise, we rely on the resulting re-assembled tar be validated
-* Using stored index information, make an API for providing `io.Reader` and perhaps `tar.Reader` from re-assembled tar
+* More implementations of storage Packer and Unpacker
+* More implementations of FileGetter and FilePutter
+* cli tooling to assemble/disassemble a provided tar archive
 
 License
 -------
