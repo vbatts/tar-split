@@ -10,6 +10,14 @@ The goal being that by preserving the raw bytes of each header, padding bytes,
 and the raw file payload, one could reassemble the original archive.
 
 
+Docs
+----
+
+* https://godoc.org/github.com/vbatts/tar-split/tar/asm
+* https://godoc.org/github.com/vbatts/tar-split/tar/storage
+* https://godoc.org/github.com/vbatts/tar-split/archive/tar
+
+
 Caveat
 ------
 
@@ -41,14 +49,6 @@ Std Version
 -----------
 
 The version of golang stdlib `archive/tar` is from go1.4.1, and their master branch around [a9dddb53f](https://github.com/golang/go/tree/a9dddb53f)
-
-
-Docs
-----
-
-* https://godoc.org/github.com/vbatts/tar-split/archive/tar
-* https://godoc.org/github.com/vbatts/tar-split/tar/storage
-* https://godoc.org/github.com/vbatts/tar-split/tar/asm
 
 
 Example
