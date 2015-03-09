@@ -14,19 +14,19 @@ import (
 // In the middle it will pack the segments and file metadata to storage.Packer
 // `p`.
 //
-// The the FilePutter is where payload of files in the stream are stashed. If
-// this stashing is not needed, fp can be nil or use NewDiscardFilePutter.
-func NewInputTarStream(r io.Reader, p storage.Packer, fp FilePutter) (io.Reader, error) {
+// The the storage.FilePutter is where payload of files in the stream are stashed. If
+// this stashing is not needed, fp can be nil or use storage.NewDiscardFilePutter.
+func NewInputTarStream(r io.Reader, p storage.Packer, fp storage.FilePutter) (io.Reader, error) {
 	// What to do here... folks will want their own access to the Reader that is
 	// their tar archive stream, but we'll need that same stream to use our
 	// forked 'archive/tar'.
 	// Perhaps do an io.TeeReader that hand back an io.Reader for them to read
 	// from, and we'll mitm the stream to store metadata.
-	// We'll need a FilePutter too ...
+	// We'll need a storage.FilePutter too ...
 
-	// Another concern, whether to do any FilePutter operations, such that we
+	// Another concern, whether to do any storage.FilePutter operations, such that we
 	// don't extract any amount of the archive. But then again, we're not making
-	// files/directories, hardlinks, etc. Just writing the io to the FilePutter.
+	// files/directories, hardlinks, etc. Just writing the io to the storage.FilePutter.
 	// Perhaps we have a DiscardFilePutter that is a bit bucket.
 
 	// we'll return the pipe reader, since TeeReader does not buffer and will
@@ -38,7 +38,7 @@ func NewInputTarStream(r io.Reader, p storage.Packer, fp FilePutter) (io.Reader,
 
 	// we need a putter that will generate the crc64 sums of file payloads
 	if fp == nil {
-		fp = NewDiscardFilePutter()
+		fp = storage.NewDiscardFilePutter()
 	}
 
 	go func() {

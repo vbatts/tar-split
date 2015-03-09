@@ -1,4 +1,4 @@
-package asm
+package storage
 
 import (
 	"bytes"
@@ -52,7 +52,7 @@ func (bfgp bufferFileGetPutter) Get(name string) (io.ReadCloser, error) {
 }
 
 func (bfgp *bufferFileGetPutter) Put(name string, r io.Reader) (int64, []byte, error) {
-	c := crc64.New(crcTable)
+	c := crc64.New(CRCTable)
 	tRdr := io.TeeReader(r, c)
 	b := bytes.NewBuffer([]byte{})
 	i, err := io.Copy(b, tRdr)
@@ -88,10 +88,11 @@ type bitBucketFilePutter struct {
 }
 
 func (bbfp *bitBucketFilePutter) Put(name string, r io.Reader) (int64, []byte, error) {
-	c := crc64.New(crcTable)
+	c := crc64.New(CRCTable)
 	tRdr := io.TeeReader(r, c)
 	i, err := io.Copy(ioutil.Discard, tRdr)
 	return i, c.Sum(nil), err
 }
 
-var crcTable = crc64.MakeTable(crc64.ISO)
+// CRCTable is the default table used for crc64 sum calculations
+var CRCTable = crc64.MakeTable(crc64.ISO)

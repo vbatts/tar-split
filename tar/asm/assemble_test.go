@@ -39,7 +39,7 @@ var entries = []struct {
 }
 
 func TestTarStreamOld(t *testing.T) {
-	fgp := NewBufferFileGetPutter()
+	fgp := storage.NewBufferFileGetPutter()
 
 	// first lets prep a GetPutter and Packer
 	for i := range entries {
@@ -88,7 +88,7 @@ func TestTarStream(t *testing.T) {
 	// Setup where we'll store the metadata
 	w := bytes.NewBuffer([]byte{})
 	sp := storage.NewJsonPacker(w)
-	fgp := NewBufferFileGetPutter()
+	fgp := storage.NewBufferFileGetPutter()
 
 	// wrap the disassembly stream
 	tarStream, err := NewInputTarStream(gzRdr, sp, fgp)

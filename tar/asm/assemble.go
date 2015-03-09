@@ -12,11 +12,11 @@ import (
 // NewOutputTarStream returns an io.ReadCloser that is an assemble tar archive
 // stream.
 //
-// It takes a FileGetter, for mapping the file payloads that are to be read in,
+// It takes a storage.FileGetter, for mapping the file payloads that are to be read in,
 // and a storage.Unpacker, which has access to the rawbytes and file order
 // metadata. With the combination of these two items, a precise assembled Tar
 // archive is possible.
-func NewOutputTarStream(fg FileGetter, up storage.Unpacker) io.ReadCloser {
+func NewOutputTarStream(fg storage.FileGetter, up storage.Unpacker) io.ReadCloser {
 	// ... Since these are interfaces, this is possible, so let's not have a nil pointer
 	if fg == nil || up == nil {
 		return nil
@@ -45,7 +45,7 @@ func NewOutputTarStream(fg FileGetter, up storage.Unpacker) io.ReadCloser {
 					break
 				}
 				defer fh.Close()
-				c := crc64.New(crcTable)
+				c := crc64.New(storage.CRCTable)
 				tRdr := io.TeeReader(fh, c)
 				if _, err := io.Copy(pw, tRdr); err != nil {
 					pw.CloseWithError(err)
