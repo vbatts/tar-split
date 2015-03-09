@@ -1,5 +1,7 @@
-Overview
+tar-split
 ========
+
+[![Build Status](https://travis-ci.org/vbatts/tar-split.svg?branch=master)](https://travis-ci.org/vbatts/tar-split)
 
 Extend the upstream golang stdlib `archive/tar` library, to expose the raw
 bytes of the TAR, rather than just the marshalled headers and file stream.
