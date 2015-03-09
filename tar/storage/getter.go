@@ -10,22 +10,31 @@ import (
 	"path"
 )
 
+// FileGetter is the interface for getting a stream of a file payload, address
+// by name/filepath. Presumably, the names will be scoped to relative file
+// paths.
 type FileGetter interface {
 	// Get returns a stream for the provided file path
-	Get(string) (io.ReadCloser, error)
+	Get(filepath string) (output io.ReadCloser, err error)
 }
 
+// FilePutter is the interface for storing a stream of a file payload,
+// addressed by name/filepath.
 type FilePutter interface {
-	// Put returns the crc64 checksum for the provided file
-	Put(string, io.Reader) (int64, []byte, error)
+	// Put returns the size of the stream received, and the crc64 checksum for
+	// the provided stream
+	Put(filepath string, input io.Reader) (size int64, checksum []byte, err error)
 }
 
+// FileGetPutter is the interface that groups both Getting and Putting file
+// payloads.
 type FileGetPutter interface {
 	FileGetter
 	FilePutter
 }
 
-// NewPathFileGetter returns a FileGetter that is for files relative to path relpath.
+// NewPathFileGetter returns a FileGetter that is for files relative to path
+// relpath.
 func NewPathFileGetter(relpath string) FileGetter {
 	return &pathFileGetter{root: relpath}
 }

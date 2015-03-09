@@ -44,8 +44,8 @@ func main() {
 			defer os.Remove(packFh.Name())
 		}
 
-		sp := storage.NewJsonPacker(packFh)
-		fp := asm.NewDiscardFilePutter()
+		sp := storage.NewJSONPacker(packFh)
+		fp := storage.NewDiscardFilePutter()
 		dissam, err := asm.NewInputTarStream(fh, sp, fp)
 		if err != nil {
 			log.Fatal(err)

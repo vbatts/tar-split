@@ -28,7 +28,7 @@ func TestDuplicateFail(t *testing.T) {
 	buf := []byte{}
 	b := bytes.NewBuffer(buf)
 
-	jp := NewJsonPacker(b)
+	jp := NewJSONPacker(b)
 	if _, err := jp.AddEntry(e[0]); err != nil {
 		t.Error(err)
 	}
@@ -40,7 +40,7 @@ func TestDuplicateFail(t *testing.T) {
 	}
 }
 
-func TestJsonPackerUnpacker(t *testing.T) {
+func TestJSONPackerUnpacker(t *testing.T) {
 	e := []Entry{
 		Entry{
 			Type:    SegmentType,
@@ -65,7 +65,7 @@ func TestJsonPackerUnpacker(t *testing.T) {
 	b := bytes.NewBuffer(buf)
 
 	func() {
-		jp := NewJsonPacker(b)
+		jp := NewJSONPacker(b)
 		for i := range e {
 			if _, err := jp.AddEntry(e[i]); err != nil {
 				t.Error(err)
@@ -79,7 +79,7 @@ func TestJsonPackerUnpacker(t *testing.T) {
 	b = bytes.NewBuffer(b.Bytes())
 	entries := Entries{}
 	func() {
-		jup := NewJsonUnpacker(b)
+		jup := NewJSONUnpacker(b)
 		for {
 			entry, err := jup.Next()
 			if err != nil {
@@ -125,7 +125,7 @@ func TestGzip(t *testing.T) {
 	buf := []byte{}
 	b := bytes.NewBuffer(buf)
 	gzW := gzip.NewWriter(b)
-	jp := NewJsonPacker(gzW)
+	jp := NewJSONPacker(gzW)
 	for i := range e {
 		if _, err := jp.AddEntry(e[i]); err != nil {
 			t.Error(err)
@@ -143,7 +143,7 @@ func TestGzip(t *testing.T) {
 	}
 	entries := Entries{}
 	func() {
-		jup := NewJsonUnpacker(gzR)
+		jup := NewJSONUnpacker(gzR)
 		for {
 			entry, err := jup.Next()
 			if err != nil {

@@ -87,7 +87,7 @@ func TestTarStream(t *testing.T) {
 
 	// Setup where we'll store the metadata
 	w := bytes.NewBuffer([]byte{})
-	sp := storage.NewJsonPacker(w)
+	sp := storage.NewJSONPacker(w)
 	fgp := storage.NewBufferFileGetPutter()
 
 	// wrap the disassembly stream
@@ -118,7 +118,7 @@ func TestTarStream(t *testing.T) {
 	// If we've made it this far, then we'll turn it around and create a tar
 	// stream from the packed metadata and buffered file contents.
 	r := bytes.NewBuffer(w.Bytes())
-	sup := storage.NewJsonUnpacker(r)
+	sup := storage.NewJSONUnpacker(r)
 	// and reuse the fgp that we Put the payloads to.
 
 	rc := NewOutputTarStream(fgp, sup)

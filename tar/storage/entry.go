@@ -7,6 +7,7 @@ func (e Entries) Len() int           { return len(e) }
 func (e Entries) Swap(i, j int)      { e[i], e[j] = e[j], e[i] }
 func (e Entries) Less(i, j int) bool { return e[i].Position < e[j].Position }
 
+// Type of Entry
 type Type int
 
 const (

@@ -8,9 +8,9 @@ import (
 	"path"
 )
 
-var (
-	ErrDuplicatePath = errors.New("duplicates of file paths not supported")
-)
+// ErrDuplicatePath is occured when a tar archive has more than one entry for
+// the same file path
+var ErrDuplicatePath = errors.New("duplicates of file paths not supported")
 
 // Packer describes the methods to pack Entries to a storage destination
 type Packer interface {
@@ -71,11 +71,11 @@ func (jup *jsonUnpacker) Next() (*Entry, error) {
 	return &e, err
 }
 
-// NewJsonUnpacker provides an Unpacker that reads Entries (SegmentType and
+// NewJSONUnpacker provides an Unpacker that reads Entries (SegmentType and
 // FileType) as a json document.
 //
 // Each Entry read are expected to be delimited by new line.
-func NewJsonUnpacker(r io.Reader) Unpacker {
+func NewJSONUnpacker(r io.Reader) Unpacker {
 	return &jsonUnpacker{
 		r:    r,
 		b:    bufio.NewReader(r),
@@ -117,11 +117,11 @@ func (jp *jsonPacker) AddEntry(e Entry) (int, error) {
 	return e.Position, nil
 }
 
-// NewJsonPacker provides an Packer that writes each Entry (SegmentType and
+// NewJSONPacker provides an Packer that writes each Entry (SegmentType and
 // FileType) as a json document.
 //
 // The Entries are delimited by new line.
-func NewJsonPacker(w io.Writer) Packer {
+func NewJSONPacker(w io.Writer) Packer {
 	return &jsonPacker{
 		w:    w,
 		e:    json.NewEncoder(w),

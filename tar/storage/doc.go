@@ -1,5 +1,5 @@
 /*
-storage is for metadata of a tar archive.
+Package storage is for metadata of a tar archive.
 
 Packing and unpacking the Entries of the stream. The types of streams are
 either segments of raw bytes (for the raw headers and various padding) and for
