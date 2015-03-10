@@ -113,6 +113,56 @@ ca9e19966b892d9ad5960414abac01ef585a1e22  tar-split.tar
 ca9e19966b892d9ad5960414abac01ef585a1e22  tar-split.tar.out
 ```
 
+
+Stored Metadata
+---------------
+
+Since the raw bytes of the headers and padding are stored, you may be wondering
+what the size implications are. The headers are at least 512 bytes per
+file (sometimes more), at least 1024 null bytes on the end, and then various
+padding. This makes for a constant linear growth in the stored metadata, with a
+naive storage implementation.
+
+Reusing our prior example's `tar-split.tar`, let's build the checksize.go example:
+
+```
+go build ./checksize.go
+```
+
+```
+$ ./checksize ./tar-split.tar
+inspecting "tar-split.tar" (size 210k)
+ -- number of files: 50
+ -- size of metadata uncompressed: 53k
+ -- size of gzip compressed metadata: 3k
+```
+
+So assuming you've managed the extraction of the archive yourself, for reuse of
+the file payloads from a relative path, then the only additional storage
+implications are as little as 3kb.
+
+But let's look at a larger archive, with many files.
+
+```
+$ ls -sh ./d.tar
+1.4G ./d.tar
+$ ./checksize ~/d.tar 
+inspecting "/home/vbatts/d.tar" (size 1420749k)
+ -- number of files: 38718
+ -- size of metadata uncompressed: 43261k
+ -- size of gzip compressed metadata: 2251k
+```
+
+Here, an archive with 38,718 files has a compressed footprint of about 2mb.
+
+Rolling the null bytes on the end of the archive, we will assume a
+bytes-per-file rate for the storage implications.
+
+| uncompressed | compressed |
+| :----------: | :--------: |
+| ~ 1kb per/file | 0.06kb per/file |
+
+
 What's Next?
 ------------
 
