@@ -51,6 +51,8 @@ func main() {
 					post := tr.RawBytes()
 					output.Write(post)
 					sum += int64(len(post))
+
+					fmt.Printf("EOF padding: %d\n", len(post))
 					break
 				}
 
@@ -65,12 +67,7 @@ func main() {
 				}
 				sum += i
 
-				// I've never seen this be populated
-				post := tr.RawBytes()
-				output.Write(post)
-				sum += int64(len(post))
-
-				fmt.Println(hdr.Name, "pre:", len(pre), "read:", i, "post:", len(post))
+				fmt.Println(hdr.Name, "pre:", len(pre), "read:", i)
 			}
 
 			// it is allowable, and not uncommon that there is further padding on the
