@@ -72,39 +72,38 @@ Now run the example over the archive:
 ```
 $ ./main tar-split.tar
 2015/02/20 15:00:58 writing "tar-split.tar" to "tar-split.tar.out"
-pax_global_header pre: 512 read: 52 post: 0
-LICENSE pre: 972 read: 1075 post: 0
-README.md pre: 973 read: 1004 post: 0
-archive/ pre: 532 read: 0 post: 0
-archive/tar/ pre: 512 read: 0 post: 0
-archive/tar/common.go pre: 512 read: 7790 post: 0
-archive/tar/example_test.go pre: 914 read: 1659 post: 0
-archive/tar/reader.go pre: 901 read: 25303 post: 0
-archive/tar/reader_test.go pre: 809 read: 17513 post: 0
-archive/tar/stat_atim.go pre: 919 read: 414 post: 0
-archive/tar/stat_atimespec.go pre: 610 read: 414 post: 0
-archive/tar/stat_unix.go pre: 610 read: 716 post: 0
-archive/tar/tar_test.go pre: 820 read: 6673 post: 0
-archive/tar/testdata/ pre: 1007 read: 0 post: 0
-archive/tar/testdata/gnu.tar pre: 512 read: 3072 post: 0
-archive/tar/testdata/nil-uid.tar pre: 512 read: 1024 post: 0
-archive/tar/testdata/pax.tar pre: 512 read: 10240 post: 0
-archive/tar/testdata/small.txt pre: 512 read: 5 post: 0
-archive/tar/testdata/small2.txt pre: 1019 read: 11 post: 0
-archive/tar/testdata/sparse-formats.tar pre: 1013 read: 17920 post: 0
-archive/tar/testdata/star.tar pre: 512 read: 3072 post: 0
-archive/tar/testdata/ustar.tar pre: 512 read: 2048 post: 0
-archive/tar/testdata/v7.tar pre: 512 read: 3584 post: 0
-archive/tar/testdata/writer-big-long.tar pre: 512 read: 4096 post: 0
-archive/tar/testdata/writer-big.tar pre: 512 read: 4096 post: 0
-archive/tar/testdata/writer.tar pre: 512 read: 3584 post: 0
-archive/tar/testdata/xattrs.tar pre: 512 read: 5120 post: 0
-archive/tar/writer.go pre: 512 read: 11867 post: 0
-archive/tar/writer_test.go pre: 933 read: 12436 post: 0
-main.go pre: 876 read: 1568 post: 0
-old.go pre: 992 read: 4918 post: 0
-Size: 174080; Sum: 174080
+pax_global_header pre: 512 read: 52
+.travis.yml pre: 972 read: 374
+DESIGN.md pre: 650 read: 1131
+LICENSE pre: 917 read: 1075
+README.md pre: 973 read: 4289
+archive/ pre: 831 read: 0
+archive/tar/ pre: 512 read: 0
+archive/tar/common.go pre: 512 read: 7790
+[...]
+tar/storage/entry_test.go pre: 667 read: 1137
+tar/storage/getter.go pre: 911 read: 2741
+tar/storage/getter_test.go pre: 843 read: 1491
+tar/storage/packer.go pre: 557 read: 3141
+tar/storage/packer_test.go pre: 955 read: 3096
+EOF padding: 1512
+Remainder: 512
+Size: 215040; Sum: 215040
 ```
+
+*What are we seeing here?* 
+
+* `pre` is the header of a file entry, and potentially the padding from the
+  end of the prior file's payload. Also with particular tar extensions and pax
+  attributes, the header can exceed 512 bytes.
+* `read` is the size of the file payload from the entry
+* `EOF padding` is the expected 1024 null bytes on the end of a tar archive,
+  plus potential padding from the end of the prior file entry's payload
+* `Remainder` is the remaining bytes of an archive. This is typically deadspace
+  as most tar implmentations will return after having reached the end of the
+  1024 null bytes. Though various implementations will include some amount of
+  bytes here, which will affect the checksum of the resulting tar archive,
+  therefore this must be accounted for as well.
 
 Ideally the input tar and output `*.out`, will match:
 
