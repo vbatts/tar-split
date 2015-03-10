@@ -11,5 +11,3 @@ install: true
 
 script:
   - go test -v ./...
-    # testing archive/tar directly thanks to:
-    #   can't load package: /home/travis/gopath/src/github.com/vbatts/tar-split/main.go:11:2: local import "./archive/tar" in non-local package
