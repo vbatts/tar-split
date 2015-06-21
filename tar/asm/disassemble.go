@@ -74,23 +74,11 @@ func NewInputTarStream(r io.Reader, p storage.Packer, fp storage.FilePutter) (io
 
 			var csum []byte
 			if hdr.Size > 0 {
-				sumChan := make(chan []byte)
-				// if there is a file payload to write, then write the file to the FilePutter
-				fileRdr, fileWrtr := io.Pipe()
-				go func() {
-					defer close(sumChan)
-					_, csum, err := fp.Put(hdr.Name, fileRdr)
-					if err != nil {
-						pW.CloseWithError(err)
-					}
-					sumChan <- csum
-				}()
-				if _, err = io.Copy(fileWrtr, tr); err != nil {
+				var err error
+				_, csum, err = fp.Put(hdr.Name, tr)
+				if err != nil {
 					pW.CloseWithError(err)
-					return
 				}
-				fileWrtr.Close()
-				csum = <-sumChan
 			}
 
 			// File entries added, regardless of size
