@@ -167,8 +167,11 @@ What's Next?
 ------------
 
 * More implementations of storage Packer and Unpacker
+ - could be a redis or mongo backend
 * More implementations of FileGetter and FilePutter
+ - could be a redis or mongo backend
 * cli tooling to assemble/disassemble a provided tar archive
+* would be interesting to have an assembler stream that implements `io.Seeker`
 
 License
 -------
