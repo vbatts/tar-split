@@ -65,7 +65,7 @@ func (jup *jsonUnpacker) Next() (*Entry, error) {
 		if _, ok := jup.seen[cName]; ok {
 			return nil, ErrDuplicatePath
 		}
-		jup.seen[cName] = emptyByte
+		jup.seen[cName] = struct{}{}
 	}
 
 	return &e, err
@@ -90,11 +90,7 @@ type jsonPacker struct {
 	seen seenNames
 }
 
-type seenNames map[string]byte
-
-// used in the seenNames map. byte is a uint8, and we'll re-use the same one
-// for minimalism.
-const emptyByte byte = 0
+type seenNames map[string]struct{}
 
 func (jp *jsonPacker) AddEntry(e Entry) (int, error) {
 	// check early for dup name
@@ -103,7 +99,7 @@ func (jp *jsonPacker) AddEntry(e Entry) (int, error) {
 		if _, ok := jp.seen[cName]; ok {
 			return -1, ErrDuplicatePath
 		}
-		jp.seen[cName] = emptyByte
+		jp.seen[cName] = struct{}{}
 	}
 
 	e.Position = jp.pos
