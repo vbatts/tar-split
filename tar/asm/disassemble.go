@@ -64,6 +64,9 @@ func NewInputTarStream(r io.Reader, p storage.Packer, fp storage.FilePutter) (io
 				}
 				break // not return. We need the end of the reader.
 			}
+			if hdr == nil {
+				break // not return. We need the end of the reader.
+			}
 
 			if _, err := p.AddEntry(storage.Entry{
 				Type:    storage.SegmentType,
