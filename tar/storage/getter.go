@@ -10,9 +10,9 @@ import (
 	"path"
 )
 
-// FileGetter is the interface for getting a stream of a file payload, address
-// by name/filepath. Presumably, the names will be scoped to relative file
-// paths.
+// FileGetter is the interface for getting a stream of a file payload,
+// addressed by name/filepath. Presumably, the names will be scoped to relative
+// file paths.
 type FileGetter interface {
 	// Get returns a stream for the provided file path
 	Get(filepath string) (output io.ReadCloser, err error)
@@ -78,7 +78,7 @@ type readCloserWrapper struct {
 
 func (w *readCloserWrapper) Close() error { return nil }
 
-// NewBufferFileGetPutter is simple in memory FileGetPutter
+// NewBufferFileGetPutter is a simple in-memory FileGetPutter
 //
 // Implication is this is memory intensive...
 // Probably best for testing or light weight cases.
