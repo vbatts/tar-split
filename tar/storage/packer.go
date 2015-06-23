@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 )
 
-// ErrDuplicatePath is occured when a tar archive has more than one entry for
-// the same file path
+// ErrDuplicatePath occurs when a tar archive has more than one entry for the
+// same file path
 var ErrDuplicatePath = errors.New("duplicates of file paths not supported")
 
 // Packer describes the methods to pack Entries to a storage destination
@@ -117,7 +117,7 @@ func (jp *jsonPacker) AddEntry(e Entry) (int, error) {
 	return e.Position, nil
 }
 
-// NewJSONPacker provides an Packer that writes each Entry (SegmentType and
+// NewJSONPacker provides a Packer that writes each Entry (SegmentType and
 // FileType) as a json document.
 //
 // The Entries are delimited by new line.
