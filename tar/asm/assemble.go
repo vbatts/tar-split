@@ -44,10 +44,10 @@ func NewOutputTarStream(fg storage.FileGetter, up storage.Unpacker) io.ReadClose
 					pw.CloseWithError(err)
 					break
 				}
-				defer fh.Close()
 				c := crc64.New(storage.CRCTable)
 				tRdr := io.TeeReader(fh, c)
 				if _, err := io.Copy(pw, tRdr); err != nil {
+					fh.Close()
 					pw.CloseWithError(err)
 					break
 				}
@@ -55,9 +55,11 @@ func NewOutputTarStream(fg storage.FileGetter, up storage.Unpacker) io.ReadClose
 					// I would rather this be a comparable ErrInvalidChecksum or such,
 					// but since it's coming through the PipeReader, the context of
 					// _which_ file would be lost...
+					fh.Close()
 					pw.CloseWithError(fmt.Errorf("file integrity checksum failed for %q", entry.Name))
 					break
 				}
+				fh.Close()
 			}
 		}
 		pw.Close()
