@@ -7,7 +7,7 @@ go:
 sudo: false
 
 # we don't need "go get" here <3
-install: true
+install: go get -d ./...
 
 script:
   - go test -v ./...
