@@ -102,11 +102,10 @@ func TestTarStreamMangledGetterPutter(t *testing.T) {
 			rdr.Close()
 
 			csum := c.Sum(nil)
-			if !bytes.Equal(csum, e.Entry.Payload) {
-				t.Errorf("wrote %d bytes. checksum %q: expected %v; got %v",
+			if bytes.Equal(csum, e.Entry.Payload) {
+				t.Errorf("wrote %d bytes. checksum for %q should not have matched! %v",
 					i,
 					e.Entry.Name,
-					e.Entry.Payload,
 					csum)
 			}
 		}
