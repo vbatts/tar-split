@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"crypto/sha1"
 	"fmt"
+	"hash/crc64"
 	"io"
 	"io/ioutil"
 	"os"
@@ -33,12 +34,36 @@ var entries = []struct {
 			Payload: []byte{126, 72, 89, 239, 230, 252, 160, 187},
 			Size:    26,
 		},
-
 		Body: []byte("café con leche, por favor"),
 	},
 }
+var entriesMangled = []struct {
+	Entry storage.Entry
+	Body  []byte
+}{
+	{
+		Entry: storage.Entry{
+			Type:    storage.FileType,
+			Name:    "./hurr.txt",
+			Payload: []byte{3, 116, 164, 177, 171, 236, 107, 78},
+			Size:    20,
+		},
+		// switch
+		Body: []byte("imma derp til I hurr"),
+	},
+	{
+		Entry: storage.Entry{
+			Type:    storage.FileType,
+			Name:    "./ermahgerd.txt",
+			Payload: []byte{127, 72, 89, 239, 230, 252, 160, 187},
+			Size:    26,
+		},
+		// san not con
+		Body: []byte("café sans leche, por favor"),
+	},
+}
 
-func TestTarStreamOld(t *testing.T) {
+func TestTarStreamMangledGetterPutter(t *testing.T) {
 	fgp := storage.NewBufferFileGetPutter()
 
 	// first lets prep a GetPutter and Packer
@@ -63,9 +88,33 @@ func TestTarStreamOld(t *testing.T) {
 		}
 	}
 
+	for _, e := range entriesMangled {
+		if e.Entry.Type == storage.FileType {
+			rdr, err := fgp.Get(e.Entry.Name)
+			if err != nil {
+				t.Error(err)
+			}
+			c := crc64.New(storage.CRCTable)
+			i, err := io.Copy(c, rdr)
+			if err != nil {
+				t.Fatal(err)
+			}
+			rdr.Close()
+
+			csum := c.Sum(nil)
+			if !bytes.Equal(csum, e.Entry.Payload) {
+				t.Errorf("wrote %d bytes. checksum %q: expected %v; got %v",
+					i,
+					e.Entry.Name,
+					e.Entry.Payload,
+					csum)
+			}
+		}
+	}
+
+	// TODO test a mangled relative path assembly
 	// next we'll use these to produce a tar stream.
-	_ = NewOutputTarStream(fgp, nil)
-	// TODO finish this
+	//_ = NewOutputTarStream(fgp, nil)
 }
 
 func TestTarStream(t *testing.T) {
