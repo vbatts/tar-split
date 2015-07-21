@@ -9,7 +9,7 @@ import (
 	"github.com/vbatts/tar-split/tar/storage"
 )
 
-// NewOutputTarStream returns an io.ReadCloser that is an assemble tar archive
+// NewOutputTarStream returns an io.ReadCloser that is an assembled tar archive
 // stream.
 //
 // It takes a storage.FileGetter, for mapping the file payloads that are to be read in,
