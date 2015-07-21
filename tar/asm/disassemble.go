@@ -61,6 +61,7 @@ func NewInputTarStream(r io.Reader, p storage.Packer, fp storage.FilePutter) (io
 				})
 				if err != nil {
 					pW.CloseWithError(err)
+					return
 				}
 				break // not return. We need the end of the reader.
 			}
@@ -73,6 +74,7 @@ func NewInputTarStream(r io.Reader, p storage.Packer, fp storage.FilePutter) (io
 				Payload: tr.RawBytes(),
 			}); err != nil {
 				pW.CloseWithError(err)
+				return
 			}
 
 			var csum []byte
@@ -81,6 +83,7 @@ func NewInputTarStream(r io.Reader, p storage.Packer, fp storage.FilePutter) (io
 				_, csum, err = fp.Put(hdr.Name, tr)
 				if err != nil {
 					pW.CloseWithError(err)
+					return
 				}
 			}
 
@@ -93,6 +96,7 @@ func NewInputTarStream(r io.Reader, p storage.Packer, fp storage.FilePutter) (io
 			})
 			if err != nil {
 				pW.CloseWithError(err)
+				return
 			}
 
 			if b := tr.RawBytes(); len(b) > 0 {
@@ -102,6 +106,7 @@ func NewInputTarStream(r io.Reader, p storage.Packer, fp storage.FilePutter) (io
 				})
 				if err != nil {
 					pW.CloseWithError(err)
+					return
 				}
 			}
 		}
@@ -111,6 +116,7 @@ func NewInputTarStream(r io.Reader, p storage.Packer, fp storage.FilePutter) (io
 		remainder, err := ioutil.ReadAll(outputRdr)
 		if err != nil && err != io.EOF {
 			pW.CloseWithError(err)
+			return
 		}
 		_, err = p.AddEntry(storage.Entry{
 			Type:    storage.SegmentType,
@@ -118,9 +124,9 @@ func NewInputTarStream(r io.Reader, p storage.Packer, fp storage.FilePutter) (io
 		})
 		if err != nil {
 			pW.CloseWithError(err)
-		} else {
-			pW.Close()
+			return
 		}
+		pW.Close()
 	}()
 
 	return pR, nil
