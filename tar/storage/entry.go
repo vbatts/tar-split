@@ -19,11 +19,11 @@ const (
 	// SegmentType represents a raw bytes segment from the archive stream. These raw
 	// byte segments consist of the raw headers and various padding.
 	//
-	// It's payload is to be marshalled base64 encoded.
+	// Its payload is to be marshalled base64 encoded.
 	SegmentType
 )
 
-// Entry is a the structure for packing and unpacking the information read from
+// Entry is the structure for packing and unpacking the information read from
 // the Tar archive.
 //
 // FileType Payload checksum is using `hash/crc64` for basic file integrity,
@@ -34,6 +34,6 @@ type Entry struct {
 	Type     Type   `json:"type"`
 	Name     string `json:"name",omitempty`
 	Size     int64  `json:"size",omitempty`
-	Payload  []byte `json:"payload"` // SegmentType store payload here; FileType store crc64 checksum here;
+	Payload  []byte `json:"payload"` // SegmentType stores payload here; FileType stores crc64 checksum here;
 	Position int    `json:"position"`
 }
