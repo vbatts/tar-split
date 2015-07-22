@@ -7,23 +7,23 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 )
 
 // FileGetter is the interface for getting a stream of a file payload, address
-// by name/filepath. Presumably, the names will be scoped to relative file
+// by name/filename. Presumably, the names will be scoped to relative file
 // paths.
 type FileGetter interface {
 	// Get returns a stream for the provided file path
-	Get(filepath string) (output io.ReadCloser, err error)
+	Get(filename string) (output io.ReadCloser, err error)
 }
 
 // FilePutter is the interface for storing a stream of a file payload,
-// addressed by name/filepath.
+// addressed by name/filename.
 type FilePutter interface {
 	// Put returns the size of the stream received, and the crc64 checksum for
 	// the provided stream
-	Put(filepath string, input io.Reader) (size int64, checksum []byte, err error)
+	Put(filename string, input io.Reader) (size int64, checksum []byte, err error)
 }
 
 // FileGetPutter is the interface that groups both Getting and Putting file
@@ -44,8 +44,7 @@ type pathFileGetter struct {
 }
 
 func (pfg pathFileGetter) Get(filename string) (io.ReadCloser, error) {
-	// FIXME might should have a check for '../../../../etc/passwd' attempts?
-	return os.Open(path.Join(pfg.root, filename))
+	return os.Open(filepath.Join(pfg.root, filename))
 }
 
 type bufferFileGetPutter struct {

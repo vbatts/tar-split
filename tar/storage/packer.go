@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"path"
+	"path/filepath"
 )
 
 // ErrDuplicatePath is occured when a tar archive has more than one entry for
@@ -61,7 +61,7 @@ func (jup *jsonUnpacker) Next() (*Entry, error) {
 
 	// check for dup name
 	if e.Type == FileType {
-		cName := path.Clean(e.Name)
+		cName := filepath.Clean(e.Name)
 		if _, ok := jup.seen[cName]; ok {
 			return nil, ErrDuplicatePath
 		}
@@ -99,7 +99,7 @@ const emptyByte byte = 0
 func (jp *jsonPacker) AddEntry(e Entry) (int, error) {
 	// check early for dup name
 	if e.Type == FileType {
-		cName := path.Clean(e.Name)
+		cName := filepath.Clean(e.Name)
 		if _, ok := jp.seen[cName]; ok {
 			return -1, ErrDuplicatePath
 		}
