@@ -27,13 +27,13 @@ func NewOutputTarStream(fg storage.FileGetter, up storage.Unpacker) io.ReadClose
 			entry, err := up.Next()
 			if err != nil {
 				pw.CloseWithError(err)
-				break
+				return
 			}
 			switch entry.Type {
 			case storage.SegmentType:
 				if _, err := pw.Write(entry.Payload); err != nil {
 					pw.CloseWithError(err)
-					break
+					return
 				}
 			case storage.FileType:
 				if entry.Size == 0 {
@@ -42,14 +42,14 @@ func NewOutputTarStream(fg storage.FileGetter, up storage.Unpacker) io.ReadClose
 				fh, err := fg.Get(entry.Name)
 				if err != nil {
 					pw.CloseWithError(err)
-					break
+					return
 				}
 				c := crc64.New(storage.CRCTable)
 				tRdr := io.TeeReader(fh, c)
 				if _, err := io.Copy(pw, tRdr); err != nil {
 					fh.Close()
 					pw.CloseWithError(err)
-					break
+					return
 				}
 				if !bytes.Equal(c.Sum(nil), entry.Payload) {
 					// I would rather this be a comparable ErrInvalidChecksum or such,
@@ -57,7 +57,7 @@ func NewOutputTarStream(fg storage.FileGetter, up storage.Unpacker) io.ReadClose
 					// _which_ file would be lost...
 					fh.Close()
 					pw.CloseWithError(fmt.Errorf("file integrity checksum failed for %q", entry.Name))
-					break
+					return
 				}
 				fh.Close()
 			}

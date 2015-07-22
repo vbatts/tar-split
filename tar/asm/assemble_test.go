@@ -110,10 +110,6 @@ func TestTarStreamMangledGetterPutter(t *testing.T) {
 			}
 		}
 	}
-
-	// TODO test a mangled relative path assembly
-	// next we'll use these to produce a tar stream.
-	//_ = NewOutputTarStream(fgp, nil)
 }
 
 func TestTarStream(t *testing.T) {
@@ -171,10 +167,7 @@ func TestTarStream(t *testing.T) {
 
 	rc := NewOutputTarStream(fgp, sup)
 	h1 := sha1.New()
-	tRdr1 := io.TeeReader(rc, h1)
-
-	// read it all to the bit bucket
-	i, err = io.Copy(ioutil.Discard, tRdr1)
+	i, err = io.Copy(h1, rc)
 	if err != nil {
 		t.Fatal(err)
 	}
