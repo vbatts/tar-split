@@ -6,7 +6,6 @@ go:
 # let us have pretty, fast Docker-based Travis workers!
 sudo: false
 
-# we don't need "go get" here <3
 install: go get -d ./...
 
 script:
