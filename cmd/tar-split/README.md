@@ -25,4 +25,15 @@ $ sha256sum new.tar
 d734a748db93ec873392470510b8a1c88929abd8fae2540dc43d5b26f7537868  new.tar
 ```
 
+### Estimating metadata size
+
+```bash
+$ tar-split checksize ./archive.tar
+inspecting "./archive.tar" (size 200k)
+ -- number of files: 28
+ -- size of metadata uncompressed: 28k
+ -- size of gzip compressed metadata: 1k
+```
+
+
 
