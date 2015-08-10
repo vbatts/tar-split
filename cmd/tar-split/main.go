@@ -2,14 +2,10 @@
 package main
 
 import (
-	"compress/gzip"
-	"io"
 	"os"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
-	"github.com/vbatts/tar-split/tar/asm"
-	"github.com/vbatts/tar-split/tar/storage"
 )
 
 func main() {
@@ -71,105 +67,21 @@ func main() {
 				},
 			},
 		},
+		{
+			Name:   "checksize",
+			Usage:  "displays size estimates for metadata storage of a Tar archive",
+			Action: CommandChecksize,
+			Flags: []cli.Flag{
+				cli.BoolFlag{
+					Name:  "work",
+					Usage: "do not delete the working directory",
+					// defaults to false
+				},
+			},
+		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
 		logrus.Fatal(err)
 	}
-}
-
-func CommandDisasm(c *cli.Context) {
-	if len(c.Args()) != 1 {
-		logrus.Fatalf("please specify tar to be disabled <NAME|->")
-	}
-	if len(c.String("output")) == 0 {
-		logrus.Fatalf("--output filename must be set")
-	}
-
-	// Set up the tar input stream
-	var inputStream io.Reader
-	if c.Args()[0] == "-" {
-		inputStream = os.Stdin
-	} else {
-		fh, err := os.Open(c.Args()[0])
-		if err != nil {
-			logrus.Fatal(err)
-		}
-		defer fh.Close()
-		inputStream = fh
-	}
-
-	// Set up the metadata storage
-	mf, err := os.OpenFile(c.String("output"), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(0600))
-	if err != nil {
-		logrus.Fatal(err)
-	}
-	defer mf.Close()
-	mfz := gzip.NewWriter(mf)
-	defer mfz.Close()
-	metaPacker := storage.NewJSONPacker(mfz)
-
-	// we're passing nil here for the file putter, because the ApplyDiff will
-	// handle the extraction of the archive
-	its, err := asm.NewInputTarStream(inputStream, metaPacker, nil)
-	if err != nil {
-		logrus.Fatal(err)
-	}
-	i, err := io.Copy(os.Stdout, its)
-	if err != nil {
-		logrus.Fatal(err)
-	}
-	logrus.Infof("created %s from %s (read %d bytes)", c.String("output"), c.Args()[0], i)
-}
-
-func CommandAsm(c *cli.Context) {
-	if len(c.Args()) > 0 {
-		logrus.Warnf("%d additional arguments passed are ignored", len(c.Args()))
-	}
-	if len(c.String("input")) == 0 {
-		logrus.Fatalf("--input filename must be set")
-	}
-	if len(c.String("output")) == 0 {
-		logrus.Fatalf("--output filename must be set ([FILENAME|-])")
-	}
-	if len(c.String("path")) == 0 {
-		logrus.Fatalf("--path must be set")
-	}
-
-	var outputStream io.Writer
-	if c.String("output") == "-" {
-		outputStream = os.Stdout
-	} else {
-		fh, err := os.Create(c.String("output"))
-		if err != nil {
-			logrus.Fatal(err)
-		}
-		defer fh.Close()
-		outputStream = fh
-	}
-
-	// Get the tar metadata reader
-	mf, err := os.Open(c.String("input"))
-	if err != nil {
-		logrus.Fatal(err)
-	}
-	defer mf.Close()
-	mfz, err := gzip.NewReader(mf)
-	if err != nil {
-		logrus.Fatal(err)
-	}
-	defer mfz.Close()
-
-	metaUnpacker := storage.NewJSONUnpacker(mfz)
-	// XXX maybe get the absolute path here
-	fileGetter := storage.NewPathFileGetter(c.String("path"))
-
-	ots := asm.NewOutputTarStream(fileGetter, metaUnpacker)
-	defer ots.Close()
-	i, err := io.Copy(outputStream, ots)
-	if err != nil {
-		logrus.Fatal(err)
-	}
-
-	logrus.Infof("created %s from %s and %s (wrote %d bytes)", c.String("output"), c.String("path"), c.String("input"), i)
 }

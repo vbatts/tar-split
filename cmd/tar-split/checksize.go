@@ -1,29 +1,25 @@
-// +build ignore
-
 package main
 
 import (
 	"archive/tar"
 	"compress/gzip"
-	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"os"
 
+	"github.com/Sirupsen/logrus"
+	"github.com/codegangsta/cli"
 	"github.com/vbatts/tar-split/tar/asm"
 	"github.com/vbatts/tar-split/tar/storage"
 )
 
-var (
-	flCleanup = flag.Bool("cleanup", true, "cleanup tempfiles")
-)
-
-func main() {
-	flag.Parse()
-
-	for _, arg := range flag.Args() {
+func CommandChecksize(c *cli.Context) {
+	if len(c.Args()) == 0 {
+		logrus.Fatalf("please specify tar archives to check ('-' will check stdin)")
+	}
+	for _, arg := range c.Args() {
 		fh, err := os.Open(arg)
 		if err != nil {
 			log.Fatal(err)
@@ -40,8 +36,10 @@ func main() {
 			log.Fatal(err)
 		}
 		defer packFh.Close()
-		if *flCleanup {
+		if !c.Bool("work") {
 			defer os.Remove(packFh.Name())
+		} else {
+			fmt.Printf(" -- working file preserved: %s\n", packFh.Name())
 		}
 
 		sp := storage.NewJSONPacker(packFh)
@@ -83,7 +81,7 @@ func main() {
 			log.Fatal(err)
 		}
 		defer gzPackFh.Close()
-		if *flCleanup {
+		if !c.Bool("work") {
 			defer os.Remove(gzPackFh.Name())
 		}
 

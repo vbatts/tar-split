@@ -65,16 +65,13 @@ naive storage implementation.
 First we'll get an archive to work with. For repeatability, we'll make an
 archive from what you've just cloned:
 
-```
+```bash
 git archive --format=tar -o tar-split.tar HEAD .
 ```
 
-```
-go build ./checksize.go	
-```
-
-```
-$ ./checksize ./tar-split.tar
+```bash
+$ go get github.com/vbatts/tar-split/cmd/tar-split
+$ tar-split checksize ./tar-split.tar
 inspecting "tar-split.tar" (size 210k)
  -- number of files: 50
  -- size of metadata uncompressed: 53k
@@ -87,7 +84,7 @@ implications are as little as 3kb.
 
 But let's look at a larger archive, with many files.
 
-```
+```bash
 $ ls -sh ./d.tar
 1.4G ./d.tar
 $ ./checksize ~/d.tar 
@@ -115,6 +112,7 @@ bytes-per-file rate for the storage implications.
  - could be a redis or mongo backend
 * cli tooling to assemble/disassemble a provided tar archive
 * would be interesting to have an assembler stream that implements `io.Seeker`
+
 
 ## License
 
