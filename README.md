@@ -10,9 +10,19 @@ and the raw file payload, one could reassemble the original archive.
 
 ## Docs
 
+Code API for libraries provided by `tar-split`:
+
 * https://godoc.org/github.com/vbatts/tar-split/tar/asm
 * https://godoc.org/github.com/vbatts/tar-split/tar/storage
 * https://godoc.org/github.com/vbatts/tar-split/archive/tar
+
+## Install
+
+The command line utilitiy is installable via:
+
+```bash
+go get github.com/vbatts/tar-split/cmd/tar-split
+```
 
 ## Caveat
 
@@ -40,7 +50,7 @@ Do not break the API of stdlib `archive/tar` in our fork (ideally find an upstre
 
 The version of golang stdlib `archive/tar` is from go1.4.1, and their master branch around [a9dddb53f](https://github.com/golang/go/tree/a9dddb53f)
 
-## Concept
+## Design
 
 See the [design](concept/DESIGN.md).
 
@@ -52,10 +62,15 @@ file (sometimes more), at least 1024 null bytes on the end, and then various
 padding. This makes for a constant linear growth in the stored metadata, with a
 naive storage implementation.
 
-Reusing our prior example's `tar-split.tar`, let's build the checksize.go example:
+First we'll get an archive to work with. For repeatability, we'll make an
+archive from what you've just cloned:
 
 ```
-go build ./checksize.go
+git archive --format=tar -o tar-split.tar HEAD .
+```
+
+```
+go build ./checksize.go	
 ```
 
 ```
