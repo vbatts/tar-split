@@ -55,13 +55,15 @@ func NewInputTarStream(r io.Reader, p storage.Packer, fp storage.FilePutter) (io
 				}
 				// even when an EOF is reached, there is often 1024 null bytes on
 				// the end of an archive. Collect them too.
-				_, err := p.AddEntry(storage.Entry{
-					Type:    storage.SegmentType,
-					Payload: tr.RawBytes(),
-				})
-				if err != nil {
-					pW.CloseWithError(err)
-					return
+				if b := tr.RawBytes(); len(b) > 0 {
+					_, err := p.AddEntry(storage.Entry{
+						Type:    storage.SegmentType,
+						Payload: b,
+					})
+					if err != nil {
+						pW.CloseWithError(err)
+						return
+					}
 				}
 				break // not return. We need the end of the reader.
 			}
@@ -69,12 +71,15 @@ func NewInputTarStream(r io.Reader, p storage.Packer, fp storage.FilePutter) (io
 				break // not return. We need the end of the reader.
 			}
 
-			if _, err := p.AddEntry(storage.Entry{
-				Type:    storage.SegmentType,
-				Payload: tr.RawBytes(),
-			}); err != nil {
-				pW.CloseWithError(err)
-				return
+			if b := tr.RawBytes(); len(b) > 0 {
+				_, err := p.AddEntry(storage.Entry{
+					Type:    storage.SegmentType,
+					Payload: b,
+				})
+				if err != nil {
+					pW.CloseWithError(err)
+					return
+				}
 			}
 
 			var csum []byte
