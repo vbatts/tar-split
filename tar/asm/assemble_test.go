@@ -114,8 +114,8 @@ func TestTarStreamMangledGetterPutter(t *testing.T) {
 
 func TestTarStream(t *testing.T) {
 	var (
-		expectedSum        = "1eb237ff69bca6e22789ecb05b45d35ca307adbd"
-		expectedSize int64 = 10240
+		expectedSHA1Sum       = "1eb237ff69bca6e22789ecb05b45d35ca307adbd"
+		expectedSize    int64 = 10240
 	)
 
 	fh, err := os.Open("./testdata/t.tar.gz")
@@ -153,8 +153,8 @@ func TestTarStream(t *testing.T) {
 	if i != expectedSize {
 		t.Errorf("size of tar: expected %d; got %d", expectedSize, i)
 	}
-	if fmt.Sprintf("%x", h0.Sum(nil)) != expectedSum {
-		t.Fatalf("checksum of tar: expected %s; got %x", expectedSum, h0.Sum(nil))
+	if fmt.Sprintf("%x", h0.Sum(nil)) != expectedSHA1Sum {
+		t.Fatalf("checksum of tar: expected %s; got %x", expectedSHA1Sum, h0.Sum(nil))
 	}
 
 	t.Logf("%s", w.String()) // if we fail, then show the packed info
@@ -175,7 +175,75 @@ func TestTarStream(t *testing.T) {
 	if i != expectedSize {
 		t.Errorf("size of output tar: expected %d; got %d", expectedSize, i)
 	}
-	if fmt.Sprintf("%x", h1.Sum(nil)) != expectedSum {
-		t.Fatalf("checksum of output tar: expected %s; got %x", expectedSum, h1.Sum(nil))
+	if fmt.Sprintf("%x", h1.Sum(nil)) != expectedSHA1Sum {
+		t.Fatalf("checksum of output tar: expected %s; got %x", expectedSHA1Sum, h1.Sum(nil))
+	}
+}
+
+func TestTarGNUTar(t *testing.T) {
+	var (
+		expectedSHA1Sum       = "d9f6babe107b7247953dff6b5b5ae31a3a880add"
+		expectedSize    int64 = 20480
+	)
+
+	fh, err := os.Open("./testdata/longlink.tar.gz")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer fh.Close()
+	gzRdr, err := gzip.NewReader(fh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer gzRdr.Close()
+
+	// Setup where we'll store the metadata
+	w := bytes.NewBuffer([]byte{})
+	sp := storage.NewJSONPacker(w)
+	fgp := storage.NewBufferFileGetPutter()
+
+	// wrap the disassembly stream
+	tarStream, err := NewInputTarStream(gzRdr, sp, fgp)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// get a sum of the stream after it has passed through to ensure it's the same.
+	h0 := sha1.New()
+	tRdr0 := io.TeeReader(tarStream, h0)
+
+	// read it all to the bit bucket
+	i, err := io.Copy(ioutil.Discard, tRdr0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if i != expectedSize {
+		t.Errorf("size of tar: expected %d; got %d", expectedSize, i)
+	}
+	if fmt.Sprintf("%x", h0.Sum(nil)) != expectedSHA1Sum {
+		t.Fatalf("checksum of tar: expected %s; got %x", expectedSHA1Sum, h0.Sum(nil))
+	}
+
+	t.Logf("%s", w.String()) // if we fail, then show the packed info
+
+	// If we've made it this far, then we'll turn it around and create a tar
+	// stream from the packed metadata and buffered file contents.
+	r := bytes.NewBuffer(w.Bytes())
+	sup := storage.NewJSONUnpacker(r)
+	// and reuse the fgp that we Put the payloads to.
+
+	rc := NewOutputTarStream(fgp, sup)
+	h1 := sha1.New()
+	i, err = io.Copy(h1, rc)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if i != expectedSize {
+		t.Errorf("size of output tar: expected %d; got %d", expectedSize, i)
+	}
+	if fmt.Sprintf("%x", h1.Sum(nil)) != expectedSHA1Sum {
+		t.Fatalf("checksum of output tar: expected %s; got %x", expectedSHA1Sum, h1.Sum(nil))
 	}
 }

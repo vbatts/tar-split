@@ -154,44 +154,60 @@ func (tr *Reader) Next() (*Header, error) {
 		}
 		return hdr, nil
 	case TypeGNULongName:
+		var b *bytes.Buffer
+		if tr.RawAccounting {
+			b = bytes.NewBuffer(tr.RawBytes())
+		}
 		// We have a GNU long name header. Its contents are the real file name.
 		realname, err := ioutil.ReadAll(tr)
 		if err != nil {
 			return nil, err
 		}
-		var b []byte
 		if tr.RawAccounting {
+			if _, err = tr.rawBytes.Write(b.Bytes()); err != nil {
+				return nil, err
+			}
 			if _, err = tr.rawBytes.Write(realname); err != nil {
 				return nil, err
 			}
-			b = tr.RawBytes()
+			b.Reset()
+			b.Write(tr.RawBytes())
 		}
 		hdr, err := tr.Next()
 		// since the above call to Next() resets the buffer, we need to throw the bytes over
 		if tr.RawAccounting {
-			if _, err = tr.rawBytes.Write(b); err != nil {
+			b.Write(tr.RawBytes())
+			if _, err = tr.rawBytes.Write(b.Bytes()); err != nil {
 				return nil, err
 			}
 		}
 		hdr.Name = cString(realname)
 		return hdr, err
 	case TypeGNULongLink:
+		var b *bytes.Buffer
+		if tr.RawAccounting {
+			b = bytes.NewBuffer(tr.RawBytes())
+		}
 		// We have a GNU long link header.
 		realname, err := ioutil.ReadAll(tr)
 		if err != nil {
 			return nil, err
 		}
-		var b []byte
 		if tr.RawAccounting {
+			if _, err = tr.rawBytes.Write(b.Bytes()); err != nil {
+				return nil, err
+			}
 			if _, err = tr.rawBytes.Write(realname); err != nil {
 				return nil, err
 			}
-			b = tr.RawBytes()
+			b.Reset()
+			b.Write(tr.RawBytes())
 		}
 		hdr, err := tr.Next()
 		// since the above call to Next() resets the buffer, we need to throw the bytes over
 		if tr.RawAccounting {
-			if _, err = tr.rawBytes.Write(b); err != nil {
+			b.Write(tr.RawBytes())
+			if _, err = tr.rawBytes.Write(b.Bytes()); err != nil {
 				return nil, err
 			}
 		}
