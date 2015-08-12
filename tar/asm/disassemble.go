@@ -19,6 +19,10 @@ import (
 // storage.FilePutter. Since the checksumming is still needed, then a default
 // of NewDiscardFilePutter will be used internally
 func NewInputTarStream(r io.Reader, p storage.Packer, fp storage.FilePutter) (io.Reader, error) {
+	return newInputTarStreamWithOptions(r, p, fp, DefaultInputOptions)
+}
+
+func newInputTarStreamWithOptions(r io.Reader, p storage.Packer, fp storage.FilePutter, opts Options) (io.Reader, error) {
 	// What to do here... folks will want their own access to the Reader that is
 	// their tar archive stream, but we'll need that same stream to use our
 	// forked 'archive/tar'.
@@ -57,7 +61,7 @@ func NewInputTarStream(r io.Reader, p storage.Packer, fp storage.FilePutter) (io
 				// the end of an archive. Collect them too.
 				if b := tr.RawBytes(); len(b) > 0 {
 					_, err := p.AddEntry(storage.Entry{
-						Type:    storage.SegmentType,
+						Type:    storage.SegmentEntry,
 						Payload: b,
 					})
 					if err != nil {
@@ -73,7 +77,7 @@ func NewInputTarStream(r io.Reader, p storage.Packer, fp storage.FilePutter) (io
 
 			if b := tr.RawBytes(); len(b) > 0 {
 				_, err := p.AddEntry(storage.Entry{
-					Type:    storage.SegmentType,
+					Type:    storage.SegmentEntry,
 					Payload: b,
 				})
 				if err != nil {
@@ -93,7 +97,7 @@ func NewInputTarStream(r io.Reader, p storage.Packer, fp storage.FilePutter) (io
 			}
 
 			entry := storage.Entry{
-				Type:    storage.FileType,
+				Type:    storage.FileCheckEntry,
 				Size:    hdr.Size,
 				Payload: csum,
 			}
@@ -109,7 +113,7 @@ func NewInputTarStream(r io.Reader, p storage.Packer, fp storage.FilePutter) (io
 
 			if b := tr.RawBytes(); len(b) > 0 {
 				_, err = p.AddEntry(storage.Entry{
-					Type:    storage.SegmentType,
+					Type:    storage.SegmentEntry,
 					Payload: b,
 				})
 				if err != nil {
@@ -127,7 +131,7 @@ func NewInputTarStream(r io.Reader, p storage.Packer, fp storage.FilePutter) (io
 			return
 		}
 		_, err = p.AddEntry(storage.Entry{
-			Type:    storage.SegmentType,
+			Type:    storage.SegmentEntry,
 			Payload: remainder,
 		})
 		if err != nil {

@@ -10,7 +10,7 @@ Concerns
 
 For completely safe assembly/disassembly, there will need to be a Content
 Addressable Storage (CAS) directory, that maps to a checksum in the
-`storage.Entity` of `storage.FileType`.
+`storage.Entity` of `storage.FileCheckEntry`.
 
 This is due to the fact that tar archives _can_ allow multiple records for the
 same path, but the last one effectively wins. Even if the prior records had a

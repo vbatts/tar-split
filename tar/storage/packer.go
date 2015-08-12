@@ -44,7 +44,7 @@ func (jup *jsonUnpacker) Next() (*Entry, error) {
 	}
 
 	// check for dup name
-	if e.Type == FileType {
+	if e.Type == FileCheckEntry {
 		cName := filepath.Clean(e.GetName())
 		if _, ok := jup.seen[cName]; ok {
 			return nil, ErrDuplicatePath
@@ -55,8 +55,8 @@ func (jup *jsonUnpacker) Next() (*Entry, error) {
 	return &e, err
 }
 
-// NewJSONUnpacker provides an Unpacker that reads Entries (SegmentType and
-// FileType) as a json document.
+// NewJSONUnpacker provides an Unpacker that reads Entries (SegmentEntry and
+// FileCheckEntry) as a json document.
 //
 // Each Entry read are expected to be delimited by new line.
 func NewJSONUnpacker(r io.Reader) Unpacker {
@@ -85,7 +85,7 @@ func (jp *jsonPacker) AddEntry(e Entry) (int, error) {
 	}
 
 	// check early for dup name
-	if e.Type == FileType {
+	if e.Type == FileCheckEntry {
 		cName := filepath.Clean(e.GetName())
 		if _, ok := jp.seen[cName]; ok {
 			return -1, ErrDuplicatePath
@@ -104,8 +104,8 @@ func (jp *jsonPacker) AddEntry(e Entry) (int, error) {
 	return e.Position, nil
 }
 
-// NewJSONPacker provides a Packer that writes each Entry (SegmentType and
-// FileType) as a json document.
+// NewJSONPacker provides a Packer that writes each Entry (SegmentEntry and
+// FileCheckEntry) as a json document.
 //
 // The Entries are delimited by new line.
 func NewJSONPacker(w io.Writer) Packer {

@@ -12,17 +12,17 @@ import (
 func TestDuplicateFail(t *testing.T) {
 	e := []Entry{
 		Entry{
-			Type:    FileType,
+			Type:    FileCheckEntry,
 			Name:    "./hurr.txt",
 			Payload: []byte("abcde"),
 		},
 		Entry{
-			Type:    FileType,
+			Type:    FileCheckEntry,
 			Name:    "./hurr.txt",
 			Payload: []byte("deadbeef"),
 		},
 		Entry{
-			Type:    FileType,
+			Type:    FileCheckEntry,
 			Name:    "hurr.txt", // slightly different path, same file though
 			Payload: []byte("deadbeef"),
 		},
@@ -45,20 +45,20 @@ func TestDuplicateFail(t *testing.T) {
 func TestJSONPackerUnpacker(t *testing.T) {
 	e := []Entry{
 		Entry{
-			Type:    SegmentType,
+			Type:    SegmentEntry,
 			Payload: []byte("how"),
 		},
 		Entry{
-			Type:    SegmentType,
+			Type:    SegmentEntry,
 			Payload: []byte("y'all"),
 		},
 		Entry{
-			Type:    FileType,
+			Type:    FileCheckEntry,
 			Name:    "./hurr.txt",
 			Payload: []byte("deadbeef"),
 		},
 		Entry{
-			Type:    SegmentType,
+			Type:    SegmentEntry,
 			Payload: []byte("doin"),
 		},
 	}
@@ -106,20 +106,20 @@ func TestJSONPackerUnpacker(t *testing.T) {
 func TestGzip(t *testing.T) {
 	e := []Entry{
 		Entry{
-			Type:    SegmentType,
+			Type:    SegmentEntry,
 			Payload: []byte("how"),
 		},
 		Entry{
-			Type:    SegmentType,
+			Type:    SegmentEntry,
 			Payload: []byte("y'all"),
 		},
 		Entry{
-			Type:    FileType,
+			Type:    FileCheckEntry,
 			Name:    "./hurr.txt",
 			Payload: []byte("deadbeef"),
 		},
 		Entry{
-			Type:    SegmentType,
+			Type:    SegmentEntry,
 			Payload: []byte("doin"),
 		},
 	}

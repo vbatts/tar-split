@@ -20,7 +20,7 @@ var entries = []struct {
 }{
 	{
 		Entry: storage.Entry{
-			Type:    storage.FileType,
+			Type:    storage.FileCheckEntry,
 			Name:    "./hurr.txt",
 			Payload: []byte{2, 116, 164, 177, 171, 236, 107, 78},
 			Size:    20,
@@ -29,7 +29,7 @@ var entries = []struct {
 	},
 	{
 		Entry: storage.Entry{
-			Type:    storage.FileType,
+			Type:    storage.FileCheckEntry,
 			Name:    "./ermahgerd.txt",
 			Payload: []byte{126, 72, 89, 239, 230, 252, 160, 187},
 			Size:    26,
@@ -38,7 +38,7 @@ var entries = []struct {
 	},
 	{
 		Entry: storage.Entry{
-			Type:    storage.FileType,
+			Type:    storage.FileCheckEntry,
 			NameRaw: []byte{0x66, 0x69, 0x6c, 0x65, 0x2d, 0xe4}, // this is invalid UTF-8. Just checking the round trip.
 			Payload: []byte{126, 72, 89, 239, 230, 252, 160, 187},
 			Size:    26,
@@ -52,7 +52,7 @@ var entriesMangled = []struct {
 }{
 	{
 		Entry: storage.Entry{
-			Type:    storage.FileType,
+			Type:    storage.FileCheckEntry,
 			Name:    "./hurr.txt",
 			Payload: []byte{3, 116, 164, 177, 171, 236, 107, 78},
 			Size:    20,
@@ -62,7 +62,7 @@ var entriesMangled = []struct {
 	},
 	{
 		Entry: storage.Entry{
-			Type:    storage.FileType,
+			Type:    storage.FileCheckEntry,
 			Name:    "./ermahgerd.txt",
 			Payload: []byte{127, 72, 89, 239, 230, 252, 160, 187},
 			Size:    26,
@@ -72,7 +72,7 @@ var entriesMangled = []struct {
 	},
 	{
 		Entry: storage.Entry{
-			Type:    storage.FileType,
+			Type:    storage.FileCheckEntry,
 			NameRaw: []byte{0x66, 0x69, 0x6c, 0x65, 0x2d, 0xe4},
 			Payload: []byte{127, 72, 89, 239, 230, 252, 160, 187},
 			Size:    26,
@@ -86,7 +86,7 @@ func TestTarStreamMangledGetterPutter(t *testing.T) {
 
 	// first lets prep a GetPutter and Packer
 	for i := range entries {
-		if entries[i].Entry.Type == storage.FileType {
+		if entries[i].Entry.Type == storage.FileCheckEntry {
 			j, csum, err := fgp.Put(entries[i].Entry.GetName(), bytes.NewBuffer(entries[i].Body))
 			if err != nil {
 				t.Error(err)
@@ -107,7 +107,7 @@ func TestTarStreamMangledGetterPutter(t *testing.T) {
 	}
 
 	for _, e := range entriesMangled {
-		if e.Entry.Type == storage.FileType {
+		if e.Entry.Type == storage.FileCheckEntry {
 			rdr, err := fgp.Get(e.Entry.GetName())
 			if err != nil {
 				t.Error(err)

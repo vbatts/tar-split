@@ -9,23 +9,23 @@ import (
 func TestEntries(t *testing.T) {
 	e := Entries{
 		Entry{
-			Type:     SegmentType,
+			Type:     SegmentEntry,
 			Payload:  []byte("y'all"),
 			Position: 1,
 		},
 		Entry{
-			Type:     SegmentType,
+			Type:     SegmentEntry,
 			Payload:  []byte("doin"),
 			Position: 3,
 		},
 		Entry{
-			Type:     FileType,
+			Type:     FileCheckEntry,
 			Name:     "./hurr.txt",
 			Payload:  []byte("deadbeef"),
 			Position: 2,
 		},
 		Entry{
-			Type:     SegmentType,
+			Type:     SegmentEntry,
 			Payload:  []byte("how"),
 			Position: 0,
 		},
@@ -38,7 +38,7 @@ func TestEntries(t *testing.T) {
 
 func TestFile(t *testing.T) {
 	f := Entry{
-		Type:     FileType,
+		Type:     FileCheckEntry,
 		Size:     100,
 		Position: 2,
 	}
@@ -67,7 +67,7 @@ func TestFile(t *testing.T) {
 
 func TestFileRaw(t *testing.T) {
 	f := Entry{
-		Type:     FileType,
+		Type:     FileCheckEntry,
 		Size:     100,
 		Position: 2,
 	}
