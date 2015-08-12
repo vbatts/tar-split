@@ -5,7 +5,6 @@ import (
 	"errors"
 	"hash/crc64"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -97,8 +96,7 @@ type bitBucketFilePutter struct {
 
 func (bbfp *bitBucketFilePutter) Put(name string, r io.Reader) (int64, []byte, error) {
 	c := crc64.New(CRCTable)
-	tRdr := io.TeeReader(r, c)
-	i, err := io.Copy(ioutil.Discard, tRdr)
+	i, err := io.Copy(c, r)
 	return i, c.Sum(nil), err
 }
 
