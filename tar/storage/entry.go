@@ -32,8 +32,8 @@ const (
 // collisions in a sample of 18.2 million, CRC64 had none.
 type Entry struct {
 	Type     Type   `json:"type"`
-	Name     string `json:"name",omitempty`
-	Size     int64  `json:"size",omitempty`
+	Name     string `json:"name,omitempty"`
+	Size     int64  `json:"size,omitempty"`
 	Payload  []byte `json:"payload"` // SegmentType stores payload here; FileType stores crc64 checksum here;
 	Position int    `json:"position"`
 }
