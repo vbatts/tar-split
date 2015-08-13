@@ -62,7 +62,6 @@ func NewOutputTarStream(fg storage.FileGetter, up storage.Unpacker) io.ReadClose
 				fh.Close()
 			}
 		}
-		pw.Close()
 	}()
 	return pr
 }
