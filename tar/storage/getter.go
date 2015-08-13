@@ -59,15 +59,15 @@ func (bfgp bufferFileGetPutter) Get(name string) (io.ReadCloser, error) {
 }
 
 func (bfgp *bufferFileGetPutter) Put(name string, r io.Reader) (int64, []byte, error) {
-	c := crc64.New(CRCTable)
-	tRdr := io.TeeReader(r, c)
-	b := bytes.NewBuffer([]byte{})
-	i, err := io.Copy(b, tRdr)
+	crc := crc64.New(CRCTable)
+	buf := bytes.NewBuffer(nil)
+	cw := io.MultiWriter(crc, buf)
+	i, err := io.Copy(cw, r)
 	if err != nil {
 		return 0, nil, err
 	}
-	bfgp.files[name] = b.Bytes()
-	return i, c.Sum(nil), nil
+	bfgp.files[name] = buf.Bytes()
+	return i, crc.Sum(nil), nil
 }
 
 type readCloserWrapper struct {
