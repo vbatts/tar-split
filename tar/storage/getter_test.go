@@ -2,7 +2,9 @@ package storage
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
+	"strings"
 	"testing"
 )
 
@@ -39,6 +41,7 @@ func TestGetter(t *testing.T) {
 		}
 	}
 }
+
 func TestPutter(t *testing.T) {
 	fp := NewDiscardFilePutter()
 	// map[filename]map[body]crc64sum
@@ -56,6 +59,25 @@ func TestPutter(t *testing.T) {
 			}
 			if !bytes.Equal(csum, sum) {
 				t.Errorf("checksum on %q: expected %v; got %v", n, sum, csum)
+			}
+		}
+	}
+}
+
+func BenchmarkPutter(b *testing.B) {
+	files := []string{
+		strings.Repeat("foo", 1000),
+		strings.Repeat("bar", 1000),
+		strings.Repeat("baz", 1000),
+		strings.Repeat("fooz", 1000),
+		strings.Repeat("vbatts", 1000),
+		strings.Repeat("systemd", 1000),
+	}
+	for i := 0; i < b.N; i++ {
+		fgp := NewBufferFileGetPutter()
+		for n, body := range files {
+			if _, _, err := fgp.Put(fmt.Sprintf("%d", n), bytes.NewBufferString(body)); err != nil {
+				b.Fatal(err)
 			}
 		}
 	}
