@@ -1,4 +1,3 @@
-// go:generate git tag | tail -1
 package main
 
 import (
@@ -6,13 +5,14 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
+	"github.com/vbatts/tar-split/version"
 )
 
 func main() {
 	app := cli.NewApp()
 	app.Name = "tar-split"
 	app.Usage = "tar assembly and disassembly utility"
-	app.Version = "0.9.2"
+	app.Version = version.VERSION
 	app.Author = "Vincent Batts"
 	app.Email = "vbatts@hashbangbash.com"
 	app.Action = cli.ShowAppHelp
