@@ -2,11 +2,7 @@
 
 [![Build Status](https://travis-ci.org/vbatts/tar-split.svg?branch=master)](https://travis-ci.org/vbatts/tar-split)
 
-Extend the upstream golang stdlib `archive/tar` library, to expose the raw
-bytes of the TAR, rather than just the marshalled headers and file stream.
-
-The goal being that by preserving the raw bytes of each header, padding bytes,
-and the raw file payload, one could reassemble the original archive.
+Pristinely disassembling a tar archive, and stashing needed raw bytes and offsets to reassemble a validating original archive.
 
 ## Docs
 
@@ -48,7 +44,9 @@ Do not break the API of stdlib `archive/tar` in our fork (ideally find an upstre
 
 ## Std Version
 
-The version of golang stdlib `archive/tar` is from go1.4.1, and their master branch around [a9dddb53f](https://github.com/golang/go/tree/a9dddb53f)
+The version of golang stdlib `archive/tar` is from go1.4.1, and their master branch around [a9dddb53f](https://github.com/golang/go/tree/a9dddb53f).
+It is minimally extended to expose the raw bytes of the TAR, rather than just the marshalled headers and file stream.
+
 
 ## Design
 
@@ -107,10 +105,7 @@ bytes-per-file rate for the storage implications.
 ## What's Next?
 
 * More implementations of storage Packer and Unpacker
- - could be a redis or mongo backend
 * More implementations of FileGetter and FilePutter
- - could be a redis or mongo backend
-* cli tooling to assemble/disassemble a provided tar archive
 * would be interesting to have an assembler stream that implements `io.Seeker`
 
 
