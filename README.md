@@ -20,6 +20,11 @@ The command line utilitiy is installable via:
 go get github.com/vbatts/tar-split/cmd/tar-split
 ```
 
+## Usage
+
+For cli usage, see its [README.md](cmd/tar-split/README.md).
+For the library see the [docs](#docs)
+
 ## Caveat
 
 Eventually this should detect TARs that this is not possible with.
