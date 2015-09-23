@@ -6,6 +6,8 @@ import (
 	"errors"
 	"io"
 	"path/filepath"
+
+	"github.com/vbatts/tar-split/tar/common"
 )
 
 // ErrDuplicatePath occurs when a tar archive has more than one entry for the
@@ -61,7 +63,7 @@ func (jup *jsonUnpacker) Next() (*Entry, error) {
 
 	// check for dup name
 	if e.Type == FileType {
-		cName := filepath.Clean(e.Name)
+		cName := filepath.Clean(e.GetName())
 		if _, ok := jup.seen[cName]; ok {
 			return nil, ErrDuplicatePath
 		}
@@ -93,9 +95,17 @@ type jsonPacker struct {
 type seenNames map[string]struct{}
 
 func (jp *jsonPacker) AddEntry(e Entry) (int, error) {
+	// if Name is not valid utf8, switch it to raw first.
+	if e.Name != "" {
+		if !common.IsValidUtf8String(e.Name) {
+			e.NameRaw = []byte(e.Name)
+			e.Name = ""
+		}
+	}
+
 	// check early for dup name
 	if e.Type == FileType {
-		cName := filepath.Clean(e.Name)
+		cName := filepath.Clean(e.GetName())
 		if _, ok := jp.seen[cName]; ok {
 			return -1, ErrDuplicatePath
 		}

@@ -1,5 +1,11 @@
 package storage
 
+import (
+	"fmt"
+
+	"github.com/vbatts/tar-split/tar/common"
+)
+
 // Entries is for sorting by Position
 type Entries []Entry
 
@@ -33,7 +39,44 @@ const (
 type Entry struct {
 	Type     Type   `json:"type"`
 	Name     string `json:"name,omitempty"`
+	NameRaw  []byte `json:"name_raw,omitempty"`
 	Size     int64  `json:"size,omitempty"`
 	Payload  []byte `json:"payload"` // SegmentType stores payload here; FileType stores crc64 checksum here;
 	Position int    `json:"position"`
+}
+
+// SetName will check name for valid UTF-8 string, and set the appropriate
+// field. See https://github.com/vbatts/tar-split/issues/17
+func (e *Entry) SetName(name string) {
+	if common.IsValidUtf8String(name) {
+		e.Name = name
+	} else {
+		e.NameRaw = []byte(name)
+	}
+}
+
+// SetNameBytes will check name for valid UTF-8 string, and set the appropriate
+// field
+func (e *Entry) SetNameBytes(name []byte) {
+	if !common.IsValidUtf8Btyes(name) {
+		e.NameRaw = name
+	} else {
+		e.Name = string(name)
+	}
+}
+
+// GetName returns the string for the entry's name, regardless of the field stored in
+func (e *Entry) GetName() string {
+	if len(e.NameRaw) > 0 {
+		return fmt.Sprintf("%s", e.NameRaw)
+	}
+	return e.Name
+}
+
+// GetNameBytes returns the bytes for the entry's name, regardless of the field stored in
+func (e *Entry) GetNameBytes() []byte {
+	if len(e.NameRaw) > 0 {
+		return e.NameRaw
+	}
+	return []byte(e.Name)
 }

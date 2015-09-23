@@ -39,10 +39,10 @@ func TestEntries(t *testing.T) {
 func TestFile(t *testing.T) {
 	f := Entry{
 		Type:     FileType,
-		Name:     "./hello.txt",
 		Size:     100,
 		Position: 2,
 	}
+	f.SetName("./hello.txt")
 
 	buf, err := json.Marshal(f)
 	if err != nil {
@@ -54,8 +54,37 @@ func TestFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if f.Name != f1.Name {
-		t.Errorf("expected Name %q, got %q", f.Name, f1.Name)
+	if f.GetName() != f1.GetName() {
+		t.Errorf("expected Name %q, got %q", f.GetName(), f1.GetName())
+	}
+	if f.Size != f1.Size {
+		t.Errorf("expected Size %q, got %q", f.Size, f1.Size)
+	}
+	if f.Position != f1.Position {
+		t.Errorf("expected Position %q, got %q", f.Position, f1.Position)
+	}
+}
+
+func TestFileRaw(t *testing.T) {
+	f := Entry{
+		Type:     FileType,
+		Size:     100,
+		Position: 2,
+	}
+	f.SetNameBytes([]byte{0x2E, 0x2F, 0x68, 0x65, 0x6C, 0x6C, 0x6F, 0xE4, 0x2E, 0x74, 0x78, 0x74})
+
+	buf, err := json.Marshal(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	f1 := Entry{}
+	if err = json.Unmarshal(buf, &f1); err != nil {
+		t.Fatal(err)
+	}
+
+	if f.GetName() != f1.GetName() {
+		t.Errorf("expected Name %q, got %q", f.GetName(), f1.GetName())
 	}
 	if f.Size != f1.Size {
 		t.Errorf("expected Size %q, got %q", f.Size, f1.Size)
