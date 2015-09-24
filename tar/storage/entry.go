@@ -1,10 +1,6 @@
 package storage
 
-import (
-	"fmt"
-
-	"github.com/vbatts/tar-split/tar/common"
-)
+import "github.com/vbatts/tar-split/tar/common"
 
 // Entries is for sorting by Position
 type Entries []Entry
@@ -68,7 +64,7 @@ func (e *Entry) SetNameBytes(name []byte) {
 // GetName returns the string for the entry's name, regardless of the field stored in
 func (e *Entry) GetName() string {
 	if len(e.NameRaw) > 0 {
-		return fmt.Sprintf("%s", e.NameRaw)
+		return string(e.NameRaw)
 	}
 	return e.Name
 }
