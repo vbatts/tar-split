@@ -6,8 +6,7 @@ import (
 	"errors"
 	"io"
 	"path/filepath"
-
-	"github.com/vbatts/tar-split/tar/common"
+	"unicode/utf8"
 )
 
 // ErrDuplicatePath occurs when a tar archive has more than one entry for the
@@ -97,7 +96,7 @@ type seenNames map[string]struct{}
 func (jp *jsonPacker) AddEntry(e Entry) (int, error) {
 	// if Name is not valid utf8, switch it to raw first.
 	if e.Name != "" {
-		if !common.IsValidUtf8String(e.Name) {
+		if !utf8.ValidString(e.Name) {
 			e.NameRaw = []byte(e.Name)
 			e.Name = ""
 		}

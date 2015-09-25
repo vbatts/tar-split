@@ -10,9 +10,9 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/vbatts/tar-split/archive/tar"
-	"github.com/vbatts/tar-split/tar/common"
 	"github.com/vbatts/tar-split/tar/storage"
 )
 
@@ -37,7 +37,7 @@ func TestISO8859(t *testing.T) {
 			break
 		}
 		fmt.Println(hdr.Name)
-		if !common.IsValidUtf8String(hdr.Name) {
+		if !utf8.ValidString(hdr.Name) {
 			fmt.Println([]byte(hdr.Name))
 		}
 	}
