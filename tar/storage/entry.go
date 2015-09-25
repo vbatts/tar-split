@@ -1,6 +1,6 @@
 package storage
 
-import "github.com/vbatts/tar-split/tar/common"
+import "unicode/utf8"
 
 // Entries is for sorting by Position
 type Entries []Entry
@@ -44,7 +44,7 @@ type Entry struct {
 // SetName will check name for valid UTF-8 string, and set the appropriate
 // field. See https://github.com/vbatts/tar-split/issues/17
 func (e *Entry) SetName(name string) {
-	if common.IsValidUtf8String(name) {
+	if utf8.ValidString(name) {
 		e.Name = name
 	} else {
 		e.NameRaw = []byte(name)
@@ -54,10 +54,10 @@ func (e *Entry) SetName(name string) {
 // SetNameBytes will check name for valid UTF-8 string, and set the appropriate
 // field
 func (e *Entry) SetNameBytes(name []byte) {
-	if !common.IsValidUtf8Btyes(name) {
-		e.NameRaw = name
-	} else {
+	if utf8.Valid(name) {
 		e.Name = string(name)
+	} else {
+		e.NameRaw = name
 	}
 }
 
