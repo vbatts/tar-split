@@ -10,38 +10,9 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
-	"unicode/utf8"
 
-	"github.com/vbatts/tar-split/archive/tar"
 	"github.com/vbatts/tar-split/tar/storage"
 )
-
-func TestISO8859(t *testing.T) {
-	fh, err := os.Open("./testdata/iso-8859.tar.gz")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer fh.Close()
-	gzRdr, err := gzip.NewReader(fh)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer gzRdr.Close()
-	tr := tar.NewReader(gzRdr)
-	for {
-		hdr, err := tr.Next()
-		if err != nil {
-			if err != io.EOF {
-				t.Error(err)
-			}
-			break
-		}
-		fmt.Println(hdr.Name)
-		if !utf8.ValidString(hdr.Name) {
-			fmt.Println([]byte(hdr.Name))
-		}
-	}
-}
 
 var entries = []struct {
 	Entry storage.Entry
