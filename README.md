@@ -29,9 +29,18 @@ For the library see the [docs](#docs)
 
 ### Basic disassembly and assembly
 
+This demonstrates the `tar-split` command and how to assemble a tar archive from the `tar-data.json.gz`
+
+
 ![basic cmd demo thumbnail](https://i.ytimg.com/vi/vh5wyjIOBtc/2.jpg?time=1445027151805)
 [youtube video of basic command demo](https://youtu.be/vh5wyjIOBtc)
 
+### Docker layer preservation
+
+This demonstrates the tar-split integration for docker-1.8. Providing consistent tar archives for the image layer content.
+
+![docker tar-split demo](https://www.youtube.com/upload_thumbnail?v=tV_Dia8E8xw&t=2&ts=1445028436275)
+[youtube vide of docker layer checksums](https://youtu.be/tV_Dia8E8xw)
 
 ## Caveat
 
