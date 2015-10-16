@@ -25,6 +25,14 @@ go get github.com/vbatts/tar-split/cmd/tar-split
 For cli usage, see its [README.md](cmd/tar-split/README.md).
 For the library see the [docs](#docs)
 
+## Demo
+
+### Basic disassembly and assembly
+
+![basic cmd demo thumbnail](https://i.ytimg.com/vi/vh5wyjIOBtc/2.jpg?time=1445027151805)
+[youtube video of basic command demo](https://youtu.be/vh5wyjIOBtc)
+
+
 ## Caveat
 
 Eventually this should detect TARs that this is not possible with.
