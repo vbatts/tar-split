@@ -13,29 +13,6 @@ import (
 	"unsafe"
 )
 
-/*
-func main() {
-	for _, arg := range os.Args[1:] {
-		keys, err := Listxattr(arg)
-		if err != nil {
-			fmt.Println(err)
-			continue
-		}
-		if len(keys) > 0 {
-			fmt.Printf("%s : %q\n", arg, keys)
-			for _, key := range keys {
-				buf, err := Lgetxattr(arg, key)
-				if err != nil {
-					fmt.Printf("  ERROR: %s\n", err)
-					continue
-				}
-				fmt.Printf("  %s = %s\n", key, string(buf))
-			}
-		}
-	}
-}
-*/
-
 // Listxattr is a helper around the syscall.Listxattr
 func Listxattr(path string) ([]string, error) {
 	buf := make([]byte, 1024)
@@ -48,7 +25,7 @@ func Listxattr(path string) ([]string, error) {
 		sz, err = syscall.Listxattr(path, buf)
 	}
 	keys := []string{}
-	for _, key := range bytes.Split(bytes.TrimSpace(buf), []byte{0x0}) {
+	for _, key := range bytes.Split(bytes.Trim(buf, "\x00"), []byte{0x0}) {
 		if string(key) != "" {
 			keys = append(keys, string(key))
 		}
