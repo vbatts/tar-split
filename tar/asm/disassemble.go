@@ -1,8 +1,10 @@
 package asm
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
 
 	"github.com/vbatts/tar-split/archive/tar"
 	"github.com/vbatts/tar-split/tar/storage"
@@ -90,6 +92,15 @@ func NewInputTarStream(r io.Reader, p storage.Packer, fp storage.FilePutter) (io
 					pW.CloseWithError(err)
 					return
 				}
+			}
+
+			if hdr.Typeflag == tar.TypeGNUSparse {
+				e := storage.Entry{
+					Type: storage.SparseFileType,
+				}
+				fmt.Fprintln(os.Stderr, "WHOOP")
+				e.SetName(hdr.Name)
+				_, err = p.AddEntry(e)
 			}
 
 			entry := storage.Entry{

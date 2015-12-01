@@ -23,6 +23,7 @@ const (
 	//
 	// Its payload is to be marshalled base64 encoded.
 	SegmentType
+	SparseFileType
 )
 
 // Entry is the structure for packing and unpacking the information read from
