@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"compress/gzip"
 	"io"
+	"io/ioutil"
+	"os"
 	"testing"
 )
 
@@ -159,5 +161,58 @@ func TestGzip(t *testing.T) {
 	if len(entries) != len(e) {
 		t.Errorf("expected %d entries, got %d", len(e), len(entries))
 	}
+}
 
+func BenchmarkGetPut(b *testing.B) {
+	e := []Entry{
+		Entry{
+			Type:    SegmentType,
+			Payload: []byte("how"),
+		},
+		Entry{
+			Type:    SegmentType,
+			Payload: []byte("y'all"),
+		},
+		Entry{
+			Type:    FileType,
+			Name:    "./hurr.txt",
+			Payload: []byte("deadbeef"),
+		},
+		Entry{
+			Type:    SegmentType,
+			Payload: []byte("doin"),
+		},
+	}
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			func() {
+				fh, err := ioutil.TempFile("", "tar-split.")
+				if err != nil {
+					b.Fatal(err)
+				}
+				defer os.Remove(fh.Name())
+				defer fh.Close()
+
+				jp := NewJSONPacker(fh)
+				for i := range e {
+					if _, err := jp.AddEntry(e[i]); err != nil {
+						b.Fatal(err)
+					}
+				}
+				fh.Sync()
+
+				up := NewJSONUnpacker(fh)
+				for {
+					_, err := up.Next()
+					if err != nil {
+						if err == io.EOF {
+							break
+						}
+						b.Fatal(err)
+					}
+				}
+
+			}()
+		}
+	})
 }
