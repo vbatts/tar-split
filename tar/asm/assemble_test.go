@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"hash/crc64"
 	"io"
+	"io/ioutil"
 	"os"
 	"testing"
 
@@ -129,17 +130,18 @@ func TestTarStreamMangledGetterPutter(t *testing.T) {
 	}
 }
 
+var testCases = []struct {
+	path            string
+	expectedSHA1Sum string
+	expectedSize    int64
+}{
+	{"./testdata/t.tar.gz", "1eb237ff69bca6e22789ecb05b45d35ca307adbd", 10240},
+	{"./testdata/longlink.tar.gz", "d9f6babe107b7247953dff6b5b5ae31a3a880add", 20480},
+	{"./testdata/fatlonglink.tar.gz", "8537f03f89aeef537382f8b0bb065d93e03b0be8", 26234880},
+	{"./testdata/iso-8859.tar.gz", "ddafa51cb03c74ec117ab366ee2240d13bba1ec3", 10240},
+}
+
 func TestTarStream(t *testing.T) {
-	testCases := []struct {
-		path            string
-		expectedSHA1Sum string
-		expectedSize    int64
-	}{
-		{"./testdata/t.tar.gz", "1eb237ff69bca6e22789ecb05b45d35ca307adbd", 10240},
-		{"./testdata/longlink.tar.gz", "d9f6babe107b7247953dff6b5b5ae31a3a880add", 20480},
-		{"./testdata/fatlonglink.tar.gz", "8537f03f89aeef537382f8b0bb065d93e03b0be8", 26234880},
-		{"./testdata/iso-8859.tar.gz", "ddafa51cb03c74ec117ab366ee2240d13bba1ec3", 10240},
-	}
 
 	for _, tc := range testCases {
 		fh, err := os.Open(tc.path)
@@ -198,6 +200,55 @@ func TestTarStream(t *testing.T) {
 		}
 		if fmt.Sprintf("%x", h1.Sum(nil)) != tc.expectedSHA1Sum {
 			t.Fatalf("checksum of output tar: expected %s; got %x", tc.expectedSHA1Sum, h1.Sum(nil))
+		}
+	}
+}
+
+func BenchmarkAsm(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		for _, tc := range testCases {
+			func() {
+				fh, err := os.Open(tc.path)
+				if err != nil {
+					b.Fatal(err)
+				}
+				defer fh.Close()
+				gzRdr, err := gzip.NewReader(fh)
+				if err != nil {
+					b.Fatal(err)
+				}
+				defer gzRdr.Close()
+
+				// Setup where we'll store the metadata
+				w := bytes.NewBuffer([]byte{})
+				sp := storage.NewJSONPacker(w)
+				fgp := storage.NewBufferFileGetPutter()
+
+				// wrap the disassembly stream
+				tarStream, err := NewInputTarStream(gzRdr, sp, fgp)
+				if err != nil {
+					b.Fatal(err)
+				}
+				// read it all to the bit bucket
+				i1, err := io.Copy(ioutil.Discard, tarStream)
+				if err != nil {
+					b.Fatal(err)
+				}
+
+				r := bytes.NewBuffer(w.Bytes())
+				sup := storage.NewJSONUnpacker(r)
+				// and reuse the fgp that we Put the payloads to.
+
+				rc := NewOutputTarStream(fgp, sup)
+
+				i2, err := io.Copy(ioutil.Discard, rc)
+				if err != nil {
+					b.Fatal(err)
+				}
+				if i1 != i2 {
+					b.Errorf("%s: input(%d) and ouput(%d) byte count didn't match", tc.path, i1, i2)
+				}
+			}()
 		}
 	}
 }
