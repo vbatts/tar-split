@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"hash/crc64"
 	"io"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -167,10 +166,7 @@ func TestTarStream(t *testing.T) {
 
 		// get a sum of the stream after it has passed through to ensure it's the same.
 		h0 := sha1.New()
-		tRdr0 := io.TeeReader(tarStream, h0)
-
-		// read it all to the bit bucket
-		i, err := io.Copy(ioutil.Discard, tRdr0)
+		i, err := io.Copy(h0, tarStream)
 		if err != nil {
 			t.Fatal(err)
 		}
