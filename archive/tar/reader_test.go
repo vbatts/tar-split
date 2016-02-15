@@ -344,7 +344,6 @@ func TestReader(t *testing.T) {
 			tr      = NewReader(f)
 			hdrs    []*Header
 			chksums []string
-			rdbuf   = make([]byte, 8)
 		)
 		for {
 			var hdr *Header
@@ -361,7 +360,7 @@ func TestReader(t *testing.T) {
 				continue
 			}
 			h := md5.New()
-			_, err = io.CopyBuffer(h, tr, rdbuf) // Effectively an incremental read
+			_, err = io.Copy(h, tr) // Effectively an incremental read
 			if err != nil {
 				break
 			}
