@@ -1,11 +1,8 @@
 package mtree
 
 import (
-	"bufio"
 	"fmt"
-	"log"
 	"os"
-	"strings"
 	"testing"
 )
 
@@ -18,24 +15,22 @@ func TestParser(t *testing.T) {
 		func() {
 			fh, err := os.Open(file)
 			if err != nil {
-				log.Println(err)
+				t.Error(err)
 				return
 			}
 			defer fh.Close()
 
-			s := bufio.NewScanner(fh)
-			for s.Scan() {
-				str := s.Text()
-				switch {
-				case strings.HasPrefix(str, "#"):
-					continue
-				default:
-				}
-				fmt.Printf("%q\n", str)
+			dh, err := ParseSpec(fh)
+			if err != nil {
+				t.Error(err)
 			}
-			if err := s.Err(); err != nil {
-				log.Println("ERROR:", err)
+			fmt.Printf("%q", dh)
+
+			_, err = dh.WriteTo(os.Stdout)
+			if err != nil {
+				t.Error(err)
 			}
+
 		}()
 	}
 }
