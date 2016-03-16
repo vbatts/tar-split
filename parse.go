@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// ParseSpec reads a stream of an mtree specification, and returns the DirectoryHierarchy
 func ParseSpec(r io.Reader) (*DirectoryHierarchy, error) {
 	s := bufio.NewScanner(r)
 	i := int(0)
