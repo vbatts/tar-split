@@ -7,6 +7,7 @@ import (
 
 const posixPolynomial uint32 = 0x04C11DB7
 
+// cksum is an implementation of the POSIX CRC algorithm
 func cksum(r io.Reader) (uint32, int, error) {
 	in := bufio.NewReader(r)
 	count := 0
