@@ -15,6 +15,8 @@ type ExcludeFunc func(path string, info os.FileInfo) bool
 // need a more linear walk, which this can not ensure.
 func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHierarchy, error) {
 	dh := DirectoryHierarchy{}
+	count := 0
+	// TODO insert signature and metadata comments first
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -27,6 +29,7 @@ func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHie
 		e := Entry{}
 		//e.Name = filepath.Base(path)
 		e.Name = path
+		e.Pos = count
 		for _, keyword := range keywords {
 			if str, err := KeywordFuncs[keyword](path, info); err == nil && str != "" {
 				e.Keywords = append(e.Keywords, str)
@@ -34,8 +37,8 @@ func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHie
 				return err
 			}
 		}
-		// XXX
 		dh.Entries = append(dh.Entries, e)
+		count++
 		return nil
 	})
 	return &dh, err

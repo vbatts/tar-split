@@ -6,7 +6,7 @@ import (
 )
 
 func TestWalk(t *testing.T) {
-	dh, err := Walk(".", nil, append(DefaultKeywords, "cksum", "md5", "rmd160digest", "sha1", "sha256", "sha512"))
+	dh, err := Walk(".", nil, append(DefaultKeywords, "xattr"))
 	if err != nil {
 		t.Fatal(err)
 	}

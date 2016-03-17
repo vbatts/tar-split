@@ -17,4 +17,7 @@ var (
 	nlinkKeywordFunc = func(path string, info os.FileInfo) (string, error) {
 		return "", nil
 	}
+	xattrKeywordFunc = func(path string, info os.FileInfo) (string, error) {
+		return "", nil
+	}
 )

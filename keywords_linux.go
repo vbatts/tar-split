@@ -3,10 +3,14 @@
 package mtree
 
 import (
+	"crypto/sha1"
 	"fmt"
 	"os"
 	"os/user"
+	"strings"
 	"syscall"
+
+	"./xattr"
 )
 
 var (
@@ -29,5 +33,21 @@ var (
 	nlinkKeywordFunc = func(path string, info os.FileInfo) (string, error) {
 		stat := info.Sys().(*syscall.Stat_t)
 		return fmt.Sprintf("nlink=%d", stat.Nlink), nil
+	}
+	xattrKeywordFunc = func(path string, info os.FileInfo) (string, error) {
+		xlist, err := xattr.List(path)
+		if err != nil {
+			return "", err
+		}
+		klist := make([]string, len(xlist))
+		for i := range xlist {
+			data, err := xattr.Get(path, xlist[i])
+			if err != nil {
+				return "", err
+			}
+			println(string(data))
+			klist[i] = fmt.Sprintf("xattr.%s=%x", xlist[i], sha1.Sum(data))
+		}
+		return strings.Join(klist, " "), nil
 	}
 )

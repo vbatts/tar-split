@@ -55,6 +55,12 @@ var (
 		"sha384digest":    hasherKeywordFunc("sha384digest", sha512.New384),    // A synonym for `sha384`
 		"sha512":          hasherKeywordFunc("sha512", sha512.New),             // The SHA512 message digest of the file
 		"sha512digest":    hasherKeywordFunc("sha512digest", sha512.New),       // A synonym for `sha512`
+
+		// This is not an upstreamed keyword, but a needed attribute for file validation.
+		// The pattern for this keyword key is prefixed by "xattr." followed by the extended attribute "namespace.key".
+		// The keyword value is the SHA1 digest of the extended attribute's value.
+		// In this way, the order of the keys does not matter, and the contents of the value is not revealed.
+		"xattr": xattrKeywordFunc,
 	}
 )
 
