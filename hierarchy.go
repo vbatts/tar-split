@@ -46,8 +46,17 @@ func (e Entry) String() string {
 	if e.Raw != "" {
 		return e.Raw
 	}
+	if e.Type == BlankType {
+		return ""
+	}
+	if e.Type == DotDotType {
+		return e.Name
+	}
 	// TODO(vbatts) if type is RelativeType and a keyword of not type=dir
-	return fmt.Sprintf("%s %s", e.Name, strings.Join(e.Keywords, " "))
+	if e.Type == SpecialType || e.Type == FullType || inSlice("type=dir", e.Keywords) {
+		return fmt.Sprintf("%s %s", e.Name, strings.Join(e.Keywords, " "))
+	}
+	return fmt.Sprintf("    %s %s", e.Name, strings.Join(e.Keywords, " "))
 }
 
 // EntryType are the formats of lines in an mtree spec file

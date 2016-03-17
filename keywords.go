@@ -35,7 +35,6 @@ var (
 	SetKeywords = []string{
 		"uid",
 		"gid",
-		"mode",
 	}
 	// KeywordFuncs is the map of all keywords (and the functions to produce them)
 	KeywordFuncs = map[string]KeywordFunc{
@@ -73,7 +72,7 @@ var (
 
 var (
 	modeKeywordFunc = func(path string, info os.FileInfo) (string, error) {
-		return fmt.Sprintf("mode=%#o", info.Mode()), nil
+		return fmt.Sprintf("mode=%#o", info.Mode().Perm()), nil
 	}
 	sizeKeywordFunc = func(path string, info os.FileInfo) (string, error) {
 		return fmt.Sprintf("size=%d", info.Size()), nil
