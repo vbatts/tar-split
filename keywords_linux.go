@@ -45,7 +45,6 @@ var (
 			if err != nil {
 				return "", err
 			}
-			println(string(data))
 			klist[i] = fmt.Sprintf("xattr.%s=%x", xlist[i], sha1.Sum(data))
 		}
 		return strings.Join(klist, " "), nil

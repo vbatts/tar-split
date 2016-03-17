@@ -27,9 +27,15 @@ var (
 		"type",
 		"uid",
 		"gid",
+		"mode",
 		"link",
 		"nlink",
 		"time",
+	}
+	SetKeywords = []string{
+		"uid",
+		"gid",
+		"mode",
 	}
 	// KeywordFuncs is the map of all keywords (and the functions to produce them)
 	KeywordFuncs = map[string]KeywordFunc{
@@ -41,6 +47,7 @@ var (
 		"gid":             gidKeywordFunc,                                      // The file group as a numeric value
 		"nlink":           nlinkKeywordFunc,                                    // The number of hard links the file is expected to have
 		"uname":           unameKeywordFunc,                                    // The file owner as a symbolic name
+		"mode":            modeKeywordFunc,                                     // The current file's permissions as a numeric (octal) or symbolic value
 		"cksum":           cksumKeywordFunc,                                    // The checksum of the file using the default algorithm specified by the cksum(1) utility
 		"md5":             hasherKeywordFunc("md5", md5.New),                   // The MD5 message digest of the file
 		"md5digest":       hasherKeywordFunc("md5digest", md5.New),             // A synonym for `md5`
@@ -65,6 +72,9 @@ var (
 )
 
 var (
+	modeKeywordFunc = func(path string, info os.FileInfo) (string, error) {
+		return fmt.Sprintf("mode=%#o", info.Mode()), nil
+	}
 	sizeKeywordFunc = func(path string, info os.FileInfo) (string, error) {
 		return fmt.Sprintf("size=%d", info.Size()), nil
 	}
