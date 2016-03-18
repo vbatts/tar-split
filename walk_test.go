@@ -2,6 +2,7 @@ package mtree
 
 import (
 	"io/ioutil"
+	"log"
 	"testing"
 )
 
@@ -10,6 +11,8 @@ func TestWalk(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	log.Fatalf("%#v", dh)
 
 	fh, err := ioutil.TempFile("", "walk.")
 	if err != nil {

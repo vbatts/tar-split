@@ -9,6 +9,7 @@ import (
 	"hash"
 	"io"
 	"os"
+	"strings"
 
 	"golang.org/x/crypto/ripemd160"
 )
@@ -17,6 +18,53 @@ import (
 // a DirectoryHierarchy, that will produce the string output of the keyword to
 // be included for the file entry. Otherwise, empty string.
 type KeywordFunc func(path string, info os.FileInfo) (string, error)
+
+// KeyVal is a "keyword=value"
+type KeyVal string
+
+// Keyword is the mapping to the available keywords
+func (kv KeyVal) Keyword() string {
+	if !strings.Contains(string(kv), "=") {
+		return ""
+	}
+	chunks := strings.SplitN(strings.TrimSpace(string(kv)), "=", 2)[0]
+	if !strings.Contains(chunks, ".") {
+		return chunks
+	}
+	return strings.SplitN(chunks, ".", 2)[0]
+}
+
+// KeywordSuffix is really only used for xattr, as the keyword is a prefix to
+// the xattr "namespace.key"
+func (kv KeyVal) KeywordSuffix() string {
+	if !strings.Contains(string(kv), "=") {
+		return ""
+	}
+	chunks := strings.SplitN(strings.TrimSpace(string(kv)), "=", 2)[0]
+	if !strings.Contains(chunks, ".") {
+		return ""
+	}
+	return strings.SplitN(chunks, ".", 2)[1]
+}
+
+// Value is the data/value portion of "keyword=value"
+func (kv KeyVal) Value() string {
+	if !strings.Contains(string(kv), "=") {
+		return ""
+	}
+	return strings.SplitN(strings.TrimSpace(string(kv)), "=", 2)[1]
+}
+
+// keywordSelector takes an array of "keyword=value" and filters out that only the set of words
+func keywordSelector(keyval, words []string) []string {
+	retList := []string{}
+	for _, kv := range keyval {
+		if inSlice(KeyVal(kv).Keyword(), words) {
+			retList = append(retList, kv)
+		}
+	}
+	return retList
+}
 
 var (
 	// DefaultKeywords has the several default keyword producers (uid, gid,
@@ -31,6 +79,7 @@ var (
 		"nlink",
 		"time",
 	}
+	// SetKeywords is the default set of keywords calculated for a `/set` SpecialType
 	SetKeywords = []string{
 		"uid",
 		"gid",

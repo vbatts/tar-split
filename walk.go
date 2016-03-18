@@ -12,11 +12,13 @@ import (
 type ExcludeFunc func(path string, info os.FileInfo) bool
 
 type dhCreator struct {
-	DH        *DirectoryHierarchy
-	curSet    []string
-	depth     int
-	curDirNum int
+	DH     *DirectoryHierarchy
+	curSet *Entry
+	curDir *Entry
+	curEnt *Entry
 }
+
+var defaultSetKeywords = []string{"type=file", "nlink=1", "flags=none", "mode=0664"}
 
 //
 // To be able to do a "walk" that produces an outcome with `/set ...` would
@@ -36,13 +38,13 @@ func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHie
 
 		// handle the /set SpecialType
 		if info.IsDir() {
-			if len(creator.curSet) == 0 {
+			if creator.curSet == nil {
 				// set the initial /set keywords
 				e := Entry{
 					Name:     "/set",
 					Type:     SpecialType,
 					Pos:      len(creator.DH.Entries),
-					Keywords: []string{"type=file", "nlink=1", "flags=none", "mode=0664"},
+					Keywords: keywordSelector(defaultSetKeywords, keywords),
 				}
 				for _, keyword := range SetKeywords {
 					if str, err := KeywordFuncs[keyword](path, info); err == nil && str != "" {
@@ -51,9 +53,9 @@ func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHie
 						return err
 					}
 				}
-				creator.curSet = e.Keywords
+				creator.curSet = &e
 				creator.DH.Entries = append(creator.DH.Entries, e)
-			} else if len(creator.curSet) > 0 {
+			} else if creator.curSet != nil {
 				// check the attributes of the /set keywords and re-set if changed
 				klist := []string{}
 				for _, keyword := range SetKeywords {
@@ -66,19 +68,20 @@ func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHie
 
 				needNewSet := false
 				for _, k := range klist {
-					if !inSlice(k, creator.curSet) {
+					if !inSlice(k, creator.curSet.Keywords) {
 						needNewSet = true
 					}
 				}
 
 				if needNewSet {
-					creator.curSet = append([]string{"type=file", "nlink=1", "flags=none", "mode=0664"}, klist...)
-					creator.DH.Entries = append(creator.DH.Entries, Entry{
+					e := Entry{
 						Name:     "/set",
 						Type:     SpecialType,
 						Pos:      len(creator.DH.Entries),
-						Keywords: creator.curSet,
-					})
+						Keywords: append(defaultSetKeywords, klist...),
+					}
+					creator.curSet = &e
+					creator.DH.Entries = append(creator.DH.Entries, e)
 				} else {
 					creator.DH.Entries = append(creator.DH.Entries, Entry{
 						Type: BlankType,
@@ -91,15 +94,29 @@ func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHie
 		e := Entry{
 			Name: filepath.Base(path),
 			Pos:  len(creator.DH.Entries),
+			Set:  creator.curSet,
 		}
 		for _, keyword := range keywords {
 			if str, err := KeywordFuncs[keyword](path, info); err == nil && str != "" {
-				if !inSlice(str, creator.curSet) {
+				if !inSlice(str, creator.curSet.Keywords) {
 					e.Keywords = append(e.Keywords, str)
 				}
 			} else if err != nil {
 				return err
 			}
+		}
+		if info.IsDir() {
+			if creator.curDir != nil {
+				creator.curDir.Next = &e
+			}
+			e.Prev = creator.curDir
+			creator.curDir = &e
+		} else {
+			if creator.curEnt != nil {
+				creator.curEnt.Next = &e
+			}
+			e.Prev = creator.curEnt
+			creator.curEnt = &e
 		}
 		creator.DH.Entries = append(creator.DH.Entries, e)
 		return nil
@@ -198,5 +215,4 @@ func readOrderedDirNames(dirname string) ([]string, error) {
 	sort.Strings(names)
 	sort.Strings(dirnames)
 	return append(names, dirnames...), nil
-
 }

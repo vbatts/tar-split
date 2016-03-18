@@ -35,11 +35,14 @@ func (bp byPos) Swap(i, j int)      { bp[i], bp[j] = bp[j], bp[i] }
 
 // Entry is each component of content in the mtree spec file
 type Entry struct {
-	Pos      int      // order in the spec
-	Raw      string   // file or directory name
-	Name     string   // file or directory name
-	Keywords []string // TODO(vbatts) maybe a keyword typed set of values?
-	Type     EntryType
+	Parent, Child *Entry   // up, down
+	Prev, Next    *Entry   // left, right
+	Set           *Entry   // current `/set` for additional keywords
+	Pos           int      // order in the spec
+	Raw           string   // file or directory name
+	Name          string   // file or directory name
+	Keywords      []string // TODO(vbatts) maybe a keyword typed set of values?
+	Type          EntryType
 }
 
 func (e Entry) String() string {
