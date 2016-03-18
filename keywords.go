@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"hash"
 	"io"
-	"math"
 	"os"
 
 	"golang.org/x/crypto/ripemd160"
@@ -113,9 +112,8 @@ var (
 		}
 	}
 	timeKeywordFunc = func(path string, info os.FileInfo) (string, error) {
-		t := info.ModTime()
-		n := float64(t.UnixNano()) / math.Pow10(9)
-		return fmt.Sprintf("time=%0.9f", n), nil
+		t := info.ModTime().UnixNano()
+		return fmt.Sprintf("time=%d.%d", (t / 1e9), (t % (t / 1e9))), nil
 	}
 	linkKeywordFunc = func(path string, info os.FileInfo) (string, error) {
 		if info.Mode()&os.ModeSymlink != 0 {
