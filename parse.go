@@ -10,7 +10,9 @@ import (
 func ParseSpec(r io.Reader) (*DirectoryHierarchy, error) {
 	s := bufio.NewScanner(r)
 	i := int(0)
-	dh := DirectoryHierarchy{}
+	creator := dhCreator{
+		DH: &DirectoryHierarchy{},
+	}
 	for s.Scan() {
 		str := s.Text()
 		e := Entry{Pos: i}
@@ -43,6 +45,11 @@ func ParseSpec(r io.Reader) (*DirectoryHierarchy, error) {
 			f := strings.Fields(str)
 			e.Name = f[0]
 			e.Keywords = f[1:]
+			if e.Name == "/set" {
+				creator.curSet = &e
+			} else if e.Name == "/unset" {
+				creator.curSet = nil
+			}
 		case len(strings.Fields(str)) > 0 && strings.Fields(str)[0] == "..":
 			e.Type = DotDotType
 			e.Raw = str
@@ -67,12 +74,22 @@ func ParseSpec(r io.Reader) (*DirectoryHierarchy, error) {
 			}
 			e.Name = f[0]
 			e.Keywords = f[1:]
+			for i := range e.Keywords {
+				kv := KeyVal(e.Keywords[i])
+				if kv.Keyword() == "type" {
+					if kv.Value() == "dir" {
+						creator.curDir = &e
+					} else {
+						creator.curEnt = &e
+					}
+				}
+			}
 		default:
 			// TODO(vbatts) log a warning?
 			continue
 		}
-		dh.Entries = append(dh.Entries, e)
+		creator.DH.Entries = append(creator.DH.Entries, e)
 		i++
 	}
-	return &dh, s.Err()
+	return creator.DH, s.Err()
 }

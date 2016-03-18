@@ -3,6 +3,7 @@ package mtree
 import (
 	"fmt"
 	"io"
+	"path/filepath"
 	"sort"
 	"strings"
 )
@@ -43,6 +44,13 @@ type Entry struct {
 	Name          string   // file or directory name
 	Keywords      []string // TODO(vbatts) maybe a keyword typed set of values?
 	Type          EntryType
+}
+
+func (e Entry) Path() string {
+	if e.Parent == nil {
+		return e.Name
+	}
+	return filepath.Join(e.Parent.Path(), e.Name)
 }
 
 func (e Entry) String() string {

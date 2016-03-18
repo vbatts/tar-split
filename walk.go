@@ -36,10 +36,19 @@ func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHie
 			}
 		}
 
-		// handle the /set SpecialType
 		if info.IsDir() {
+			// TODO Insert a comment of the full path of the directory's name
+			/*
+				if creator.curDir != nil {
+					creator.DH.Entries = append(creator.DH.Entries, Entry{
+						Raw:  "# " + creator.curDir.Path(),
+						Type: CommentType,
+					})
+				}
+			*/
+
+			// set the initial /set keywords
 			if creator.curSet == nil {
-				// set the initial /set keywords
 				e := Entry{
 					Name:     "/set",
 					Type:     SpecialType,
@@ -92,9 +101,10 @@ func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHie
 		}
 
 		e := Entry{
-			Name: filepath.Base(path),
-			Pos:  len(creator.DH.Entries),
-			Set:  creator.curSet,
+			Name:   filepath.Base(path),
+			Pos:    len(creator.DH.Entries),
+			Set:    creator.curSet,
+			Parent: creator.curDir,
 		}
 		for _, keyword := range keywords {
 			if str, err := KeywordFuncs[keyword](path, info); err == nil && str != "" {
@@ -187,6 +197,9 @@ func walk(c *dhCreator, path string, info os.FileInfo, walkFn filepath.WalkFunc)
 		Type: DotDotType,
 		Pos:  len(c.DH.Entries),
 	})
+	if c.curDir != nil {
+		c.curDir = c.curDir.Parent
+	}
 	return nil
 }
 
