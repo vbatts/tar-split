@@ -37,15 +37,25 @@ func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHie
 		}
 
 		if info.IsDir() {
+			creator.DH.Entries = append(creator.DH.Entries, Entry{
+				Type: BlankType,
+				Pos:  len(creator.DH.Entries),
+			})
+
 			// TODO Insert a comment of the full path of the directory's name
-			/*
-				if creator.curDir != nil {
-					creator.DH.Entries = append(creator.DH.Entries, Entry{
-						Raw:  "# " + creator.curDir.Path(),
-						Type: CommentType,
-					})
-				}
-			*/
+			if creator.curDir != nil {
+				creator.DH.Entries = append(creator.DH.Entries, Entry{
+					Pos:  len(creator.DH.Entries),
+					Raw:  "# " + filepath.Join(creator.curDir.Path(), filepath.Base(path)),
+					Type: CommentType,
+				})
+			} else {
+				creator.DH.Entries = append(creator.DH.Entries, Entry{
+					Pos:  len(creator.DH.Entries),
+					Raw:  "# " + filepath.Base(path),
+					Type: CommentType,
+				})
+			}
 
 			// set the initial /set keywords
 			if creator.curSet == nil {
@@ -81,7 +91,6 @@ func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHie
 						needNewSet = true
 					}
 				}
-
 				if needNewSet {
 					e := Entry{
 						Name:     "/set",
@@ -91,11 +100,6 @@ func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHie
 					}
 					creator.curSet = &e
 					creator.DH.Entries = append(creator.DH.Entries, e)
-				} else {
-					creator.DH.Entries = append(creator.DH.Entries, Entry{
-						Type: BlankType,
-						Pos:  len(creator.DH.Entries),
-					})
 				}
 			}
 		}
