@@ -20,9 +20,9 @@ type dhCreator struct {
 
 var defaultSetKeywords = []string{"type=file", "nlink=1", "flags=none", "mode=0664"}
 
-//
-// To be able to do a "walk" that produces an outcome with `/set ...` would
-// need a more linear walk, which this can not ensure.
+// Walk from root directory and assemble the DirectoryHierarchy. excludes
+// provided are used to skip paths. keywords are the set to collect from the
+// walked paths. The recommended default list is DefaultKeywords.
 func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHierarchy, error) {
 	creator := dhCreator{DH: &DirectoryHierarchy{}}
 	// TODO insert signature and metadata comments first (user, machine, tree, date)
@@ -107,6 +107,7 @@ func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHie
 		e := Entry{
 			Name:   filepath.Base(path),
 			Pos:    len(creator.DH.Entries),
+			Type:   RelativeType,
 			Set:    creator.curSet,
 			Parent: creator.curDir,
 		}

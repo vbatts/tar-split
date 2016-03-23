@@ -47,7 +47,7 @@ type Entry struct {
 }
 
 func (e Entry) Path() string {
-	if e.Parent == nil {
+	if e.Parent == nil || e.Type == FullType {
 		return e.Name
 	}
 	return filepath.Join(e.Parent.Path(), e.Name)

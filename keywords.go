@@ -66,6 +66,52 @@ func keywordSelector(keyval, words []string) []string {
 	return retList
 }
 
+// NewKeyVals constructs a list of KeyVal from the list of strings, like "keyword=value"
+func NewKeyVals(keyvals []string) KeyVals {
+	kvs := make(KeyVals, len(keyvals))
+	for i := range keyvals {
+		kvs[i] = KeyVal(keyvals[i])
+	}
+	return kvs
+}
+
+// KeyVals is a list of KeyVal
+type KeyVals []KeyVal
+
+// Has the "keyword" present in the list of KeyVal, and returns the
+// corresponding KeyVal, else an empty string.
+func (kvs KeyVals) Has(keyword string) KeyVal {
+	for i := range kvs {
+		if kvs[i].Keyword() == keyword {
+			return kvs[i]
+		}
+	}
+	return emptyKV
+}
+
+var emptyKV = KeyVal("")
+
+// MergeSet takes the current setKeyVals, and then applies the entryKeyVals
+// such that the entry's values win. The union is returned.
+func MergeSet(setKeyVals, entryKeyVals []string) KeyVals {
+	retList := NewKeyVals(append([]string{}, setKeyVals...))
+	eKVs := NewKeyVals(entryKeyVals)
+	seenKeywords := []string{}
+	for i := range retList {
+		word := retList[i].Keyword()
+		if ekv := eKVs.Has(word); ekv != emptyKV {
+			retList[i] = ekv
+		}
+		seenKeywords = append(seenKeywords, word)
+	}
+	for i := range eKVs {
+		if !inSlice(eKVs[i].Keyword(), seenKeywords) {
+			retList = append(retList, eKVs[i])
+		}
+	}
+	return retList
+}
+
 var (
 	// DefaultKeywords has the several default keyword producers (uid, gid,
 	// mode, nlink, type, size, mtime)
