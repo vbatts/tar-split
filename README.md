@@ -66,7 +66,7 @@ Do not break the API of stdlib `archive/tar` in our fork (ideally find an upstre
 
 ## Std Version
 
-The version of golang stdlib `archive/tar` is from go1.4.1, and their master branch around [a9dddb53f](https://github.com/golang/go/tree/a9dddb53f).
+The version of golang stdlib `archive/tar` is from go1.6
 It is minimally extended to expose the raw bytes of the TAR, rather than just the marshalled headers and file stream.
 
 
