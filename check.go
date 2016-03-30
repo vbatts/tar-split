@@ -58,7 +58,7 @@ func Check(root string, dh *DirectoryHierarchy) (*Result, error) {
 				}
 				if string(kv) != curKeyVal {
 					failed = true
-					fmt.Printf("%q: keyword %q: expected %s; got %s", e.Path(), kv.Keyword(), kv.Value(), KeyVal(curKeyVal).Value())
+					fmt.Printf("%q: keyword %q: expected %s; got %s\n", e.Path(), kv.Keyword(), kv.Value(), KeyVal(curKeyVal).Value())
 				}
 			}
 		}
