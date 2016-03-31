@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	mtree "../.."
+	"github.com/vbatts/go-mtree"
 )
 
 var (
