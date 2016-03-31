@@ -10,7 +10,7 @@ import (
 	"strings"
 	"syscall"
 
-	"./xattr"
+	"github.com/vbatts/go-mtree/xattr"
 )
 
 var (
