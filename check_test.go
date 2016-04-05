@@ -1,9 +1,6 @@
 package mtree
 
-import (
-	"log"
-	"testing"
-)
+import "testing"
 
 func TestCheck(t *testing.T) {
 	dh, err := Walk(".", nil, append(DefaultKeywords, "sha1"))
@@ -15,6 +12,10 @@ func TestCheck(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	//log.Fatalf("%#v", dh)
-	log.Fatalf("%#v", res)
+
+	if len(res.Failures) > 0 {
+		t.Errorf("%#v", res)
+	}
 }
+
+// TODO make a directory, walk it, check it, modify it and ensure it fails
