@@ -84,3 +84,18 @@ const (
 	DotDotType                     // .. - A relative path step. keywords/options are ignored
 	FullType                       // if the first word on the line has a `/` after the first character, it interpretted as a file pathname with options
 )
+
+// String returns the name of the EntryType
+func (et EntryType) String() string {
+	return typeNames[et]
+}
+
+var typeNames = map[EntryType]string{
+	SignatureType: "SignatureType",
+	BlankType:     "BlankType",
+	CommentType:   "CommentType",
+	SpecialType:   "SpecialType",
+	RelativeType:  "RelativeType",
+	DotDotType:    "DotDotType",
+	FullType:      "FullType",
+}
