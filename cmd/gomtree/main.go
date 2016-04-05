@@ -99,6 +99,7 @@ func main() {
 			return
 		}
 		if res != nil && len(res.Failures) > 0 {
+			defer os.Exit(1)
 			for _, failure := range res.Failures {
 				fmt.Println(failure)
 			}

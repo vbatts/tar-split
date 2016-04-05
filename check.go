@@ -7,11 +7,12 @@ import (
 	"sort"
 )
 
+// Result of a Check
 type Result struct {
-	Failures []Failure
-	// XXX perhaps this is a list of the failed files and keywords?
+	Failures []Failure // list of any failures in the Check
 }
 
+// Failure of a particular keyword for a path
 type Failure struct {
 	Path     string
 	Keyword  string
@@ -19,10 +20,12 @@ type Failure struct {
 	Got      string
 }
 
+// String returns a "pretty" formatting for a Failure
 func (f Failure) String() string {
 	return fmt.Sprintf("%q: keyword %q: expected %s; got %s", f.Path, f.Keyword, f.Expected, f.Got)
 }
 
+// Check a root directory path for a DirectoryHierarchy
 func Check(root string, dh *DirectoryHierarchy) (*Result, error) {
 	creator := dhCreator{DH: dh}
 	curDir, err := os.Getwd()

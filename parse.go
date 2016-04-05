@@ -53,6 +53,9 @@ func ParseSpec(r io.Reader) (*DirectoryHierarchy, error) {
 		case len(strings.Fields(str)) > 0 && strings.Fields(str)[0] == "..":
 			e.Type = DotDotType
 			e.Raw = str
+			if creator.curDir != nil {
+				creator.curDir = creator.curDir.Parent
+			}
 			// nothing else to do here
 		case len(strings.Fields(str)) > 0:
 			// collapse any escaped newlines
@@ -74,6 +77,7 @@ func ParseSpec(r io.Reader) (*DirectoryHierarchy, error) {
 			}
 			e.Name = f[0]
 			e.Keywords = f[1:]
+			e.Parent = creator.curDir
 			for i := range e.Keywords {
 				kv := KeyVal(e.Keywords[i])
 				if kv.Keyword() == "type" {
