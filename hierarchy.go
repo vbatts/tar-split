@@ -46,6 +46,7 @@ type Entry struct {
 	Type          EntryType
 }
 
+// Path provides the full path of the file, despite RelativeType or FullType
 func (e Entry) Path() string {
 	if e.Parent == nil || e.Type == FullType {
 		return e.Name

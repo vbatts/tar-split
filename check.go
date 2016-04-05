@@ -7,12 +7,25 @@ import (
 	"sort"
 )
 
+// Result of a Check
 type Result struct {
-	// XXX perhaps this is a list of the failed files and keywords?
+	Failures []Failure // list of any failures in the Check
 }
 
-var ErrNotAllClear = fmt.Errorf("some keyword check failed validation")
+// Failure of a particular keyword for a path
+type Failure struct {
+	Path     string
+	Keyword  string
+	Expected string
+	Got      string
+}
 
+// String returns a "pretty" formatting for a Failure
+func (f Failure) String() string {
+	return fmt.Sprintf("%q: keyword %q: expected %s; got %s", f.Path, f.Keyword, f.Expected, f.Got)
+}
+
+// Check a root directory path for a DirectoryHierarchy
 func Check(root string, dh *DirectoryHierarchy) (*Result, error) {
 	creator := dhCreator{DH: dh}
 	curDir, err := os.Getwd()
@@ -25,7 +38,7 @@ func Check(root string, dh *DirectoryHierarchy) (*Result, error) {
 	}
 	sort.Sort(byPos(creator.DH.Entries))
 
-	var failed bool
+	var result Result
 	for _, e := range creator.DH.Entries {
 		switch e.Type {
 		case SpecialType:
@@ -57,16 +70,11 @@ func Check(root string, dh *DirectoryHierarchy) (*Result, error) {
 					return nil, err
 				}
 				if string(kv) != curKeyVal {
-					failed = true
-					fmt.Printf("%q: keyword %q: expected %s; got %s\n", e.Path(), kv.Keyword(), kv.Value(), KeyVal(curKeyVal).Value())
+					failure := Failure{Path: e.Path(), Keyword: kv.Keyword(), Expected: kv.Value(), Got: KeyVal(curKeyVal).Value()}
+					result.Failures = append(result.Failures, failure)
 				}
 			}
 		}
 	}
-
-	if failed {
-		return nil, ErrNotAllClear
-	}
-
-	return nil, nil
+	return &result, nil
 }
