@@ -3,6 +3,7 @@ package mtree
 import (
 	"bufio"
 	"io"
+	"path/filepath"
 	"strings"
 )
 
@@ -70,12 +71,12 @@ func ParseSpec(r io.Reader) (*DirectoryHierarchy, error) {
 			}
 			// parse the options
 			f := strings.Fields(str)
-			if strings.Contains(str, "/") {
+			e.Name = filepath.Clean(f[0])
+			if strings.Contains(e.Name, "/") {
 				e.Type = FullType
 			} else {
 				e.Type = RelativeType
 			}
-			e.Name = f[0]
 			e.Keywords = f[1:]
 			e.Parent = creator.curDir
 			for i := range e.Keywords {
