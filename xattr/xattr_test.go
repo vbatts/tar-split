@@ -26,7 +26,7 @@ func TestXattr(t *testing.T) {
 		t.Error(fh.Name(), err)
 	}
 	if !(len(l) > 0) {
-		t.Errorf("%q: expected a list of at least 1; got %d", len(l))
+		t.Errorf("%q: expected a list of at least 1; got %d", fh.Name(), len(l))
 	}
 	got, err := Get(fh.Name(), "user.testing")
 	if err != nil {

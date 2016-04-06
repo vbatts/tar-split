@@ -49,9 +49,9 @@ type Entry struct {
 // Path provides the full path of the file, despite RelativeType or FullType
 func (e Entry) Path() string {
 	if e.Parent == nil || e.Type == FullType {
-		return e.Name
+		return filepath.Clean(e.Name)
 	}
-	return filepath.Join(e.Parent.Path(), e.Name)
+	return filepath.Clean(filepath.Join(e.Parent.Path(), e.Name))
 }
 
 func (e Entry) String() string {

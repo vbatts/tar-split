@@ -42,7 +42,7 @@ func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHie
 				Pos:  len(creator.DH.Entries),
 			})
 
-			// TODO Insert a comment of the full path of the directory's name
+			// Insert a comment of the full path of the directory's name
 			if creator.curDir != nil {
 				creator.DH.Entries = append(creator.DH.Entries, Entry{
 					Pos:  len(creator.DH.Entries),
