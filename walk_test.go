@@ -2,6 +2,7 @@ package mtree
 
 import (
 	"io/ioutil"
+	"os"
 	"testing"
 )
 
@@ -10,26 +11,27 @@ func TestWalk(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	//log.Fatalf("%#v", dh)
+	numEntries = countTypes(dh)
 
 	fh, err := ioutil.TempFile("", "walk.")
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer os.Remove(fh.Name())
+	defer fh.Close()
 
 	if _, err = dh.WriteTo(fh); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
-	fh.Close()
-	t.Fatal(fh.Name())
-	//os.Remove(fh.Name())
-}
-
-func TestReadNames(t *testing.T) {
-	names, err := readOrderedDirNames(".")
-	if err != nil {
-		t.Error(err)
+	if _, err := fh.Seek(0, 0); err != nil {
+		t.Fatal(err)
 	}
-	t.Errorf("names: %q", names)
+	if dh, err = ParseSpec(fh); err != nil {
+		t.Fatal(err)
+	}
+	for k, v := range countTypes(dh) {
+		if numEntries[k] != v {
+			t.Errorf("for type %s: expected %d, got %d", k, numEntries[k], v)
+		}
+	}
 }
