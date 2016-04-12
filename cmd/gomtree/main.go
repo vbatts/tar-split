@@ -92,7 +92,7 @@ func main() {
 		dh.WriteTo(os.Stdout)
 	} else {
 		// else this is a validation
-		res, err := mtree.Check(rootPath, dh)
+		res, err := mtree.Check(rootPath, dh, currentKeywords)
 		if err != nil {
 			log.Println(err)
 			isErr = true
