@@ -7,7 +7,6 @@ sudo: false
 
 before_install:
   - git config --global url."https://".insteadOf git://
-  - go get golang.org/x/tools/cmd/vet
   - go get -u github.com/golang/lint/golint
   - mkdir -p $GOPATH/src/github.com/vbatts && ln -sf $(pwd) $GOPATH/src/github.com/vbatts/go-mtree
   - go get ./...
