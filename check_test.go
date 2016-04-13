@@ -80,3 +80,18 @@ func TestCheckKeywords(t *testing.T) {
 		t.Errorf("%#v", res)
 	}
 }
+
+func ExampleCheck() {
+	dh, err := Walk(".", nil, append(DefaultKeywords, "sha1"))
+	if err != nil {
+		// handle error ...
+	}
+
+	res, err := Check(".", dh, nil)
+	if err != nil {
+		// handle error ...
+	}
+	if len(res.Failures) > 0 {
+		// handle failed validity ...
+	}
+}
