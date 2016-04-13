@@ -25,8 +25,10 @@ func (f Failure) String() string {
 	return fmt.Sprintf("%q: keyword %q: expected %s; got %s", f.Path, f.Keyword, f.Expected, f.Got)
 }
 
-// Check a root directory path for a DirectoryHierarchy
-func Check(root string, dh *DirectoryHierarchy) (*Result, error) {
+// Check a root directory path against the DirectoryHierarchy, regarding only
+// the available keywords from the list and each entry in the hierarchy.
+// If keywords is nil, the check all present in the DirectoryHierarchy
+func Check(root string, dh *DirectoryHierarchy, keywords []string) (*Result, error) {
 	creator := dhCreator{DH: dh}
 	curDir, err := os.Getwd()
 	if err == nil {
@@ -61,6 +63,9 @@ func Check(root string, dh *DirectoryHierarchy) (*Result, error) {
 			}
 
 			for _, kv := range kvs {
+				if keywords != nil && !inSlice(kv.Keyword(), keywords) {
+					continue
+				}
 				keywordFunc, ok := KeywordFuncs[kv.Keyword()]
 				if !ok {
 					return nil, fmt.Errorf("Unknown keyword %q for file %q", kv.Keyword(), e.Path())
