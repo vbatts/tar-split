@@ -36,6 +36,7 @@ func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHie
 			}
 		}
 
+		entryPathName := filepath.Base(path)
 		if info.IsDir() {
 			creator.DH.Entries = append(creator.DH.Entries, Entry{
 				Type: BlankType,
@@ -46,13 +47,14 @@ func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHie
 			if creator.curDir != nil {
 				creator.DH.Entries = append(creator.DH.Entries, Entry{
 					Pos:  len(creator.DH.Entries),
-					Raw:  "# " + filepath.Join(creator.curDir.Path(), filepath.Base(path)),
+					Raw:  "# " + filepath.Join(creator.curDir.Path(), entryPathName),
 					Type: CommentType,
 				})
 			} else {
+				entryPathName = "."
 				creator.DH.Entries = append(creator.DH.Entries, Entry{
 					Pos:  len(creator.DH.Entries),
-					Raw:  "# " + filepath.Base(path),
+					Raw:  "# .",
 					Type: CommentType,
 				})
 			}
@@ -105,7 +107,7 @@ func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHie
 		}
 
 		e := Entry{
-			Name:   filepath.Base(path),
+			Name:   entryPathName,
 			Pos:    len(creator.DH.Entries),
 			Type:   RelativeType,
 			Set:    creator.curSet,
