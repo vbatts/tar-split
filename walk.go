@@ -2,6 +2,7 @@ package mtree
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -13,13 +14,6 @@ import (
 // whether to be excluded from the assembled DirectoryHierarchy. If the func
 // returns true, then the path is not included in the spec.
 type ExcludeFunc func(path string, info os.FileInfo) bool
-
-type dhCreator struct {
-	DH     *DirectoryHierarchy
-	curSet *Entry
-	curDir *Entry
-	curEnt *Entry
-}
 
 var defaultSetKeywords = []string{"type=file", "nlink=1", "flags=none", "mode=0664"}
 
@@ -76,9 +70,24 @@ func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHie
 					Keywords: keywordSelector(defaultSetKeywords, keywords),
 				}
 				for _, keyword := range SetKeywords {
-					if str, err := KeywordFuncs[keyword](path, info); err == nil && str != "" {
-						e.Keywords = append(e.Keywords, str)
-					} else if err != nil {
+					err := func() error {
+						var r io.Reader
+						if info.Mode().IsRegular() {
+							fh, err := os.Open(path)
+							if err != nil {
+								return err
+							}
+							defer fh.Close()
+							r = fh
+						}
+						if str, err := KeywordFuncs[keyword](path, info, r); err == nil && str != "" {
+							e.Keywords = append(e.Keywords, str)
+						} else if err != nil {
+							return err
+						}
+						return nil
+					}()
+					if err != nil {
 						return err
 					}
 				}
@@ -88,9 +97,26 @@ func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHie
 				// check the attributes of the /set keywords and re-set if changed
 				klist := []string{}
 				for _, keyword := range SetKeywords {
-					if str, err := KeywordFuncs[keyword](path, info); err == nil && str != "" {
-						klist = append(klist, str)
-					} else if err != nil {
+					err := func() error {
+						var r io.Reader
+						if info.Mode().IsRegular() {
+							fh, err := os.Open(path)
+							if err != nil {
+								return err
+							}
+							defer fh.Close()
+							r = fh
+						}
+						str, err := KeywordFuncs[keyword](path, info, r)
+						if err != nil {
+							return err
+						}
+						if str != "" {
+							klist = append(klist, str)
+						}
+						return nil
+					}()
+					if err != nil {
 						return err
 					}
 				}
@@ -122,11 +148,26 @@ func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHie
 			Parent: creator.curDir,
 		}
 		for _, keyword := range keywords {
-			if str, err := KeywordFuncs[keyword](path, info); err == nil && str != "" {
-				if !inSlice(str, creator.curSet.Keywords) {
+			err := func() error {
+				var r io.Reader
+				if info.Mode().IsRegular() {
+					fh, err := os.Open(path)
+					if err != nil {
+						return err
+					}
+					defer fh.Close()
+					r = fh
+				}
+				str, err := KeywordFuncs[keyword](path, info, r)
+				if err != nil {
+					return err
+				}
+				if str != "" && !inSlice(str, creator.curSet.Keywords) {
 					e.Keywords = append(e.Keywords, str)
 				}
-			} else if err != nil {
+				return nil
+			}()
+			if err != nil {
 				return err
 			}
 		}
@@ -245,7 +286,7 @@ func readOrderedDirNames(dirname string) ([]string, error) {
 	return append(names, dirnames...), nil
 }
 
-// signatureEntries is helper function that returns a slice of Entry's
+// signatureEntries is a simple helper function that returns a slice of Entry's
 // that describe the metadata signature about the host. Items like date, user,
 // machine, and tree (which is specified by argument `root`), are considered.
 // These Entry's construct comments in the mtree specification, so if there is
