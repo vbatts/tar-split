@@ -42,6 +42,10 @@ func main() {
 					Value: "tar-data.json.gz",
 					Usage: "output of disassembled tar stream",
 				},
+				cli.BoolFlag{
+					Name:  "no-stdout",
+					Usage: "do not throughput the stream to STDOUT",
+				},
 			},
 		},
 		{
