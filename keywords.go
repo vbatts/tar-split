@@ -209,9 +209,9 @@ var (
 	timeKeywordFunc = func(path string, info os.FileInfo) (string, error) {
 		t := info.ModTime().UnixNano()
 		if t == 0 {
-			return "time=0.0", nil
+			return "time=0.000000000", nil
 		}
-		return fmt.Sprintf("time=%d.%d", (t / 1e9), (t % (t / 1e9))), nil
+		return fmt.Sprintf("time=%d.%9.9d", (t / 1e9), (t % (t / 1e9))), nil
 	}
 	linkKeywordFunc = func(path string, info os.FileInfo) (string, error) {
 		if info.Mode()&os.ModeSymlink != 0 {

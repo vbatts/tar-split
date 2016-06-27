@@ -107,9 +107,9 @@ func TestTimeComparison(t *testing.T) {
 
 	// This is the format of time from FreeBSD
 	spec := `
-/set type=file time=0.000000000
+/set type=file time=5.000000000
 .               type=dir 
-    file       time=0.000000000
+    file       time=5.000000000
 ..
 `
 
@@ -118,7 +118,7 @@ func TestTimeComparison(t *testing.T) {
 		t.Fatal(err)
 	}
 	// This is what mode we're checking for. Round integer of epoch seconds
-	epoch := time.Unix(0, 0)
+	epoch := time.Unix(5, 0)
 	if err := os.Chtimes(fh.Name(), epoch, epoch); err != nil {
 		t.Fatal(err)
 	}
