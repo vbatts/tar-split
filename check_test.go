@@ -1,6 +1,7 @@
 package mtree
 
 import (
+	"bytes"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -93,5 +94,48 @@ func ExampleCheck() {
 	}
 	if len(res.Failures) > 0 {
 		// handle failed validity ...
+	}
+}
+
+// https://github.com/vbatts/go-mtree/issues/8
+func TestTimeComparison(t *testing.T) {
+	dir, err := ioutil.TempDir("", "test-time.")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	// This is the format of time from FreeBSD
+	spec := `
+/set type=file time=5.000000000
+.               type=dir 
+    file       time=5.000000000
+..
+`
+
+	fh, err := os.Create(filepath.Join(dir, "file"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// This is what mode we're checking for. Round integer of epoch seconds
+	epoch := time.Unix(5, 0)
+	if err := os.Chtimes(fh.Name(), epoch, epoch); err != nil {
+		t.Fatal(err)
+	}
+	if err := fh.Close(); err != nil {
+		t.Error(err)
+	}
+
+	dh, err := ParseSpec(bytes.NewBufferString(spec))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := Check(dir, dh, nil)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(res.Failures) > 0 {
+		t.Fatal(res.Failures)
 	}
 }
