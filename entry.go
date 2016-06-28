@@ -25,6 +25,29 @@ type Entry struct {
 	Type       EntryType
 }
 
+// Descend searches thru an Entry's children to find the Entry associated with
+// `filename`. Directories are stored at the end of an Entry's children so do a
+// traverse backwards. If you descend to a "."
+func (e Entry) Descend(filename string) *Entry {
+	if filename == "." || filename == "" {
+		return &e
+	}
+	numChildren := len(e.Children)
+	for i := range e.Children {
+		c := e.Children[numChildren-1-i]
+		if c.Name == filename {
+			return c
+		}
+	}
+	return nil
+}
+
+// Ascend gets the parent of an Entry. Serves mainly to maintain readability
+// when traversing up and down an Entry tree
+func (e Entry) Ascend() *Entry {
+	return e.Parent
+}
+
 // Path provides the full path of the file, despite RelativeType or FullType
 func (e Entry) Path() string {
 	if e.Parent == nil || e.Type == FullType {
@@ -43,7 +66,6 @@ func (e Entry) String() string {
 	if e.Type == DotDotType {
 		return e.Name
 	}
-	// TODO(vbatts) if type is RelativeType and a keyword of not type=dir
 	if e.Type == SpecialType || e.Type == FullType || inSlice("type=dir", e.Keywords) {
 		return fmt.Sprintf("%s %s", e.Name, strings.Join(e.Keywords, " "))
 	}

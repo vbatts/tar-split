@@ -3,6 +3,7 @@ package mtree
 import (
 	"archive/tar"
 	"bytes"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -45,6 +46,14 @@ func TestTar(t *testing.T) {
 		buf := bytes.NewBuffer(data)
 		str := NewTarStreamer(buf, append(DefaultKeywords, "sha1"))
 	*/
+	/*
+		// open empty folder and check size.
+		fh, err := os.Open("./testdata/empty")
+		if err != nil {
+			t.Fatal(err)
+		}
+		log.Println(fh.Stat())
+		fh.Close() */
 	fh, err := os.Open("./testdata/test.tar")
 	if err != nil {
 		t.Fatal(err)
@@ -59,23 +68,71 @@ func TestTar(t *testing.T) {
 	}
 	defer fh.Close()
 
-	/*
-		fi, err := fh.Stat()
-		if err != nil {
-			t.Fatal(err)
-		}
-		if i != fi.Size() {
-			t.Errorf("expected length %d; got %d", fi.Size(), i)
-		}
-	*/
-	dh, err := str.Hierarchy()
+	// get DirectoryHierarcy struct from walking the tar archive
+	tdh, err := str.Hierarchy()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if dh == nil {
+	if tdh == nil {
 		t.Fatal("expected a DirectoryHierarchy struct, but got nil")
 	}
-	//dh.WriteTo(os.Stdout)
+
+	fh, err = os.Create("./testdata/test.mtree")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove("./testdata/test.mtree")
+
+	// put output of tar walk into test.mtree
+	_, err = tdh.WriteTo(fh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fh.Close()
+
+	// now simulate gomtree -T testdata/test.tar -f testdata/test.mtree
+	fh, err = os.Open("./testdata/test.mtree")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer fh.Close()
+
+	dh, err := ParseSpec(fh)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := TarCheck(tdh, dh, append(DefaultKeywords, "sha1"))
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// print any failures, and then call t.Fatal once all failures/extra/missing
+	// are outputted
+	if res != nil {
+		errors := ""
+		switch {
+		case len(res.Failures) > 0:
+			for _, f := range res.Failures {
+				fmt.Printf("%s\n", f)
+			}
+			errors += "Keyword validation errors\n"
+		case len(res.Missing) > 0:
+			for _, m := range res.Missing {
+				fmt.Printf("Missing file: %s\n", m.Path())
+			}
+			errors += "Missing files not expected for this test\n"
+		case len(res.Extra) > 0:
+			for _, e := range res.Extra {
+				fmt.Printf("Extra file: %s\n", e.Path())
+			}
+			errors += "Extra files not expected for this test\n"
+		}
+		if errors != "" {
+			t.Fatal(errors)
+		}
+	}
 }
 
 // minimal tar archive stream that mimics what is in ./testdata/test.tar

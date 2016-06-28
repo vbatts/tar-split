@@ -81,6 +81,7 @@ func ParseSpec(r io.Reader) (*DirectoryHierarchy, error) {
 				e.Type = RelativeType
 			}
 			e.Keywords = f[1:]
+			// TODO: gather keywords if using tar stream
 			e.Parent = creator.curDir
 			for i := range e.Keywords {
 				kv := KeyVal(e.Keywords[i])

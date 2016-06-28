@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -20,6 +22,7 @@ var (
 	flUseKeywords  = flag.String("k", "", "Use the specified (delimited by comma or space) keywords as the current set of keywords")
 	flListKeywords = flag.Bool("list-keywords", false, "List the keywords available")
 	flResultFormat = flag.String("result-format", "bsd", "output the validation results using the given format (bsd, json, path)")
+	flTar          = flag.String("T", "", "use tar archive to create or validate a directory hierarchy spec")
 )
 
 var formats = map[string]func(*mtree.Result) string{
@@ -123,19 +126,60 @@ func main() {
 		rootPath = *flPath
 	}
 
-	// -c
-	if *flCreate {
-		// create a directory hierarchy
-		dh, err := mtree.Walk(rootPath, nil, currentKeywords)
+	// -T <tar file>
+	var tdh *mtree.DirectoryHierarchy
+	if *flTar != "" {
+		fh, err := os.Open(*flTar)
 		if err != nil {
 			log.Println(err)
 			isErr = true
 			return
 		}
-		dh.WriteTo(os.Stdout)
-	} else if dh != nil {
+		ts := mtree.NewTarStreamer(fh, currentKeywords)
+
+		if _, err := io.Copy(ioutil.Discard, ts); err != nil && err != io.EOF {
+			log.Println(err)
+			isErr = true
+			return
+		}
+		if err := ts.Close(); err != nil {
+			log.Println(err)
+			isErr = true
+			return
+		}
+		defer fh.Close()
+		tdh, err = ts.Hierarchy()
+		if err != nil {
+			log.Println(err)
+			isErr = true
+			return
+		}
+	}
+	// -c
+	if *flCreate {
+		// create a directory hierarchy
+		// with a tar stream
+		if tdh != nil {
+			tdh.WriteTo(os.Stdout)
+		} else {
+			// with a root directory
+			dh, err := mtree.Walk(rootPath, nil, currentKeywords)
+			if err != nil {
+				log.Println(err)
+				isErr = true
+				return
+			}
+			dh.WriteTo(os.Stdout)
+		}
+	} else if tdh != nil || dh != nil {
+		var res *mtree.Result
+		var err error
 		// else this is a validation
-		res, err := mtree.Check(rootPath, dh, currentKeywords)
+		if *flTar != "" {
+			res, err = mtree.TarCheck(tdh, dh, currentKeywords)
+		} else {
+			res, err = mtree.Check(rootPath, dh, currentKeywords)
+		}
 		if err != nil {
 			log.Println(err)
 			isErr = true
@@ -148,13 +192,31 @@ func main() {
 				log.Println(err)
 				isErr = true
 				return
+		if res != nil {
+			if len(res.Failures) > 0 {
+				defer os.Exit(1)
+				for _, failure := range res.Failures {
+					fmt.Println(failure)
+				}
 			}
+			if len(res.Extra) > 0 {
+				defer os.Exit(1)
+				for _, extra := range res.Extra {
+					fmt.Printf("%s extra\n", extra.Path())
+				}
+			}
+			if len(res.Missing) > 0 {
+				defer os.Exit(1)
+				for _, missing := range res.Missing {
+					fmt.Printf("%s missing\n", missing.Path())
+				}
+			}
+		} else {
+			log.Println("neither validating or creating a manifest. Please provide additional arguments")
+			isErr = true
+			defer os.Exit(1)
+			return
 		}
-	} else {
-		log.Println("neither validating or creating a manifest. Please provide additional arguments")
-		isErr = true
-		defer os.Exit(1)
-		return
 	}
 }
 
