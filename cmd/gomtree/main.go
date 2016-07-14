@@ -90,7 +90,7 @@ func main() {
 			return
 		}
 		dh.WriteTo(os.Stdout)
-	} else {
+	} else if dh != nil {
 		// else this is a validation
 		res, err := mtree.Check(rootPath, dh, currentKeywords)
 		if err != nil {
@@ -104,6 +104,11 @@ func main() {
 				fmt.Println(failure)
 			}
 		}
+	} else {
+		log.Println("neither validating or creating a manifest. Please provide additional arguments")
+		isErr = true
+		defer os.Exit(1)
+		return
 	}
 }
 
