@@ -1,9 +1,12 @@
 package mtree
 
 import (
+	"fmt"
 	"os"
+	"os/user"
 	"path/filepath"
 	"sort"
+	"time"
 )
 
 // ExcludeFunc is the type of function called on each path walked to determine
@@ -25,7 +28,12 @@ var defaultSetKeywords = []string{"type=file", "nlink=1", "flags=none", "mode=06
 // walked paths. The recommended default list is DefaultKeywords.
 func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHierarchy, error) {
 	creator := dhCreator{DH: &DirectoryHierarchy{}}
-	// TODO insert signature and metadata comments first (user, machine, tree, date)
+	// insert signature and metadata comments first (user, machine, tree, date)
+	metadataEntries := signatureEntries(root)
+	for _, e := range metadataEntries {
+		e.Pos = len(creator.DH.Entries)
+		creator.DH.Entries = append(creator.DH.Entries, e)
+	}
 	err := startWalk(&creator, root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -235,4 +243,60 @@ func readOrderedDirNames(dirname string) ([]string, error) {
 	sort.Strings(names)
 	sort.Strings(dirnames)
 	return append(names, dirnames...), nil
+}
+
+// signatureEntries is helper function that returns a slice of Entry's
+// that describe the metadata signature about the host. Items like date, user,
+// machine, and tree (which is specified by argument `root`), are considered.
+// These Entry's construct comments in the mtree specification, so if there is
+// an error trying to obtain a particular metadata, we simply don't construct
+// the Entry.
+func signatureEntries(root string) []Entry {
+	var sigEntries []Entry
+	user, err := user.Current()
+	if err == nil {
+		userEntry := Entry{
+			Type: CommentType,
+			Raw:  fmt.Sprintf("#%16s%s", "user: ", user.Username),
+		}
+		sigEntries = append(sigEntries, userEntry)
+	}
+
+	hostname, err := os.Hostname()
+	if err == nil {
+		hostEntry := Entry{
+			Type: CommentType,
+			Raw:  fmt.Sprintf("#%16s%s", "machine: ", hostname),
+		}
+		sigEntries = append(sigEntries, hostEntry)
+	}
+
+	if tree := filepath.Clean(root); tree == "." || tree == ".." {
+		root, err := os.Getwd()
+		if err == nil {
+			// use parent directory of current directory
+			if tree == ".." {
+				root = filepath.Dir(root)
+			}
+			treeEntry := Entry{
+				Type: CommentType,
+				Raw:  fmt.Sprintf("#%16s%s", "tree: ", filepath.Clean(root)),
+			}
+			sigEntries = append(sigEntries, treeEntry)
+		}
+	} else {
+		treeEntry := Entry{
+			Type: CommentType,
+			Raw:  fmt.Sprintf("#%16s%s", "tree: ", filepath.Clean(root)),
+		}
+		sigEntries = append(sigEntries, treeEntry)
+	}
+
+	dateEntry := Entry{
+		Type: CommentType,
+		Raw:  fmt.Sprintf("#%16s%s", "date: ", time.Now().Format("Mon Jan 2 15:04:05 2006")),
+	}
+	sigEntries = append(sigEntries, dateEntry)
+
+	return sigEntries
 }
