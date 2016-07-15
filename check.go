@@ -50,7 +50,7 @@ func Check(root string, dh *DirectoryHierarchy, keywords []string) (*Result, err
 				creator.curSet = nil
 			}
 		case RelativeType, FullType:
-			info, err := os.Lstat(filepath.Join(root, e.Path()))
+			info, err := os.Lstat(e.Path())
 			if err != nil {
 				return nil, err
 			}
