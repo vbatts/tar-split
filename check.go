@@ -63,12 +63,12 @@ func Check(root string, dh *DirectoryHierarchy, keywords []string) (*Result, err
 			}
 
 			for _, kv := range kvs {
-				if keywords != nil && !inSlice(kv.Keyword(), keywords) {
-					continue
-				}
 				keywordFunc, ok := KeywordFuncs[kv.Keyword()]
 				if !ok {
 					return nil, fmt.Errorf("Unknown keyword %q for file %q", kv.Keyword(), e.Path())
+				}
+				if keywords != nil && !inSlice(kv.Keyword(), keywords) {
+					continue
 				}
 				curKeyVal, err := keywordFunc(filepath.Join(root, e.Path()), info)
 				if err != nil {
