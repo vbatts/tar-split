@@ -166,7 +166,17 @@ var (
 
 var (
 	modeKeywordFunc = func(path string, info os.FileInfo) (string, error) {
-		return fmt.Sprintf("mode=%#o", info.Mode().Perm()), nil
+		permissions := info.Mode().Perm()
+		if os.ModeSetuid&info.Mode() > 0 {
+			permissions |= (1 << 11)
+		}
+		if os.ModeSetgid&info.Mode() > 0 {
+			permissions |= (1 << 10)
+		}
+		if os.ModeSticky&info.Mode() > 0 {
+			permissions |= (1 << 9)
+		}
+		return fmt.Sprintf("mode=%#o", permissions), nil
 	}
 	sizeKeywordFunc = func(path string, info os.FileInfo) (string, error) {
 		return fmt.Sprintf("size=%d", info.Size()), nil
