@@ -108,7 +108,7 @@ func TestTimeComparison(t *testing.T) {
 	// This is the format of time from FreeBSD
 	spec := `
 /set type=file time=5.000000000
-.               type=dir 
+.               type=dir
     file       time=5.000000000
 ..
 `
@@ -135,6 +135,72 @@ func TestTimeComparison(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	if len(res.Failures) > 0 {
+		t.Fatal(res.Failures)
+	}
+}
+
+func TestIgnoreComments(t *testing.T) {
+	dir, err := ioutil.TempDir("", "test-comments.")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	// This is the format of time from FreeBSD
+	spec := `
+/set type=file time=5.000000000
+.               type=dir
+    file1       time=5.000000000
+..
+`
+
+	fh, err := os.Create(filepath.Join(dir, "file1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// This is what mode we're checking for. Round integer of epoch seconds
+	epoch := time.Unix(5, 0)
+	if err := os.Chtimes(fh.Name(), epoch, epoch); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(dir, epoch, epoch); err != nil {
+		t.Fatal(err)
+	}
+	if err := fh.Close(); err != nil {
+		t.Error(err)
+	}
+
+	dh, err := ParseSpec(bytes.NewBufferString(spec))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := Check(dir, dh, nil)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(res.Failures) > 0 {
+		t.Fatal(res.Failures)
+	}
+
+	// now change the spec to a comment that looks like an actual Entry but has
+	// whitespace in front of it
+	spec = `
+/set type=file time=5.000000000
+.               type=dir
+    file1       time=5.000000000
+	#file2 		time=5.000000000
+..
+`
+	dh, err = ParseSpec(bytes.NewBufferString(spec))
+
+	res, err = Check(dir, dh, nil)
+	if err != nil {
+		t.Error(err)
+	}
+
 	if len(res.Failures) > 0 {
 		t.Fatal(res.Failures)
 	}
