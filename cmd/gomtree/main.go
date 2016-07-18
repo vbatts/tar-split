@@ -47,6 +47,9 @@ func main() {
 	// -k <keywords>
 	if *flUseKeywords != "" {
 		currentKeywords = splitKeywordsArg(*flUseKeywords)
+		if !inSlice("type", currentKeywords) {
+			currentKeywords = append([]string{"type"}, currentKeywords...)
+		}
 	} else {
 		currentKeywords = mtree.DefaultKeywords[:]
 	}
