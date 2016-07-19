@@ -16,11 +16,14 @@ func ParseSpec(r io.Reader) (*DirectoryHierarchy, error) {
 	}
 	for s.Scan() {
 		str := s.Text()
+		trimmedStr := strings.TrimLeftFunc(str, func(c rune) bool {
+			return c == ' ' || c == '\t'
+		})
 		e := Entry{Pos: i}
 		switch {
-		case strings.HasPrefix(str, "#"):
+		case strings.HasPrefix(trimmedStr, "#"):
 			e.Raw = str
-			if strings.HasPrefix(str, "#mtree") {
+			if strings.HasPrefix(trimmedStr, "#mtree") {
 				e.Type = SignatureType
 			} else {
 				e.Type = CommentType
