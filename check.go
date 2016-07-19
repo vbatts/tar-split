@@ -41,11 +41,11 @@ func Check(root string, dh *DirectoryHierarchy, keywords []string) (*Result, err
 	sort.Sort(byPos(creator.DH.Entries))
 
 	var result Result
-	for _, e := range creator.DH.Entries {
+	for i, e := range creator.DH.Entries {
 		switch e.Type {
 		case SpecialType:
 			if e.Name == "/set" {
-				creator.curSet = &e
+				creator.curSet = &creator.DH.Entries[i]
 			} else if e.Name == "/unset" {
 				creator.curSet = nil
 			}

@@ -122,6 +122,9 @@ func TestTimeComparison(t *testing.T) {
 	if err := os.Chtimes(fh.Name(), epoch, epoch); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.Chtimes(dir, epoch, epoch); err != nil {
+		t.Fatal(err)
+	}
 	if err := fh.Close(); err != nil {
 		t.Error(err)
 	}
