@@ -32,10 +32,20 @@ var formats = map[string]func(*mtree.Result) string{
 		return buffer.String()
 	},
 
+	// Outputs the full result struct in JSON.
 	"json": func(r *mtree.Result) string {
 		var buffer bytes.Buffer
 		if err := json.NewEncoder(&buffer).Encode(r); err != nil {
 			panic(err)
+		}
+		return buffer.String()
+	},
+
+	// Outputs only the paths which failed to validate.
+	"path": func(r *mtree.Result) string {
+		var buffer bytes.Buffer
+		for _, fail := range r.Failures {
+			fmt.Fprintln(&buffer, fail.Path)
 		}
 		return buffer.String()
 	},
