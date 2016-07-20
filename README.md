@@ -95,7 +95,32 @@ gomtree -p . -f /tmp/mtree.txt
 ### See the supported keywords
 
 ```bash
-gomtree -l
+gomtree -list-keywords
+Available keywords:
+  rmd160
+  ripemd160digest
+  type  (default)
+  link  (default)
+  cksum
+  md5
+  md5digest
+  sha256digest
+  sha512
+  time  (default)
+  gid  (default)
+  mode  (default)
+  sha1
+  sha1digest
+  size  (default)
+  uid  (default)
+  sha256
+  sha384
+  sha512digest
+  nlink  (default)
+  uname
+  rmd160digest
+  sha384digest
+  xattr
 ```
 
 
