@@ -185,7 +185,8 @@ var (
 		// The pattern for this keyword key is prefixed by "xattr." followed by the extended attribute "namespace.key".
 		// The keyword value is the SHA1 digest of the extended attribute's value.
 		// In this way, the order of the keys does not matter, and the contents of the value is not revealed.
-		"xattr": xattrKeywordFunc,
+		"xattr":  xattrKeywordFunc,
+		"xattrs": xattrKeywordFunc,
 	}
 )
 
