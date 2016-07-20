@@ -16,7 +16,7 @@ var (
 	flPath         = flag.String("p", "", "root path that the hierarchy spec is relative to")
 	flAddKeywords  = flag.String("K", "", "Add the specified (delimited by comma or space) keywords to the current set of keywords")
 	flUseKeywords  = flag.String("k", "", "Use the specified (delimited by comma or space) keywords as the current set of keywords")
-	flListKeywords = flag.Bool("l", false, "List the keywords available")
+	flListKeywords = flag.Bool("list-keywords", false, "List the keywords available")
 )
 
 func main() {
