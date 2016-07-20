@@ -9,15 +9,16 @@ import (
 
 // Result of a Check
 type Result struct {
-	Failures []Failure // list of any failures in the Check
+	// list of any failures in the Check
+	Failures []Failure `json:"failures"`
 }
 
 // Failure of a particular keyword for a path
 type Failure struct {
-	Path     string
-	Keyword  string
-	Expected string
-	Got      string
+	Path     string `json:"path"`
+	Keyword  string `json:"keyword"`
+	Expected string `json:"expected"`
+	Got      string `json:"got"`
 }
 
 // String returns a "pretty" formatting for a Failure
