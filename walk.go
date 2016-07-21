@@ -106,7 +106,7 @@ func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHie
 						Name:     "/set",
 						Type:     SpecialType,
 						Pos:      len(creator.DH.Entries),
-						Keywords: append(defaultSetKeywords, klist...),
+						Keywords: keywordSelector(append(defaultSetKeywords, klist...), keywords),
 					}
 					creator.curSet = &e
 					creator.DH.Entries = append(creator.DH.Entries, e)
