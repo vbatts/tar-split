@@ -1,14 +1,26 @@
 package mtree
 
 // #include "vis.h"
+// #include <stdlib.h>
 import "C"
-import "fmt"
+import (
+	"fmt"
+	"math"
+	"unsafe"
+)
 
-func Vis(str string) (string, error) {
-	dst := new(C.char)
-	ret := C.strvis(dst, C.CString(str), C.VIS_WHITE|C.VIS_OCTAL|C.VIS_GLOB)
-	if ret == 0 {
-		return "", fmt.Errorf("failed to encode string")
+// Vis is a wrapper of the C implementation of the function vis, which encodes
+// a character with a particular format/style
+func Vis(src string) (string, error) {
+	// dst needs to be 4 times the length of str, must check appropriate size
+	if uint32(len(src)*4+1) >= math.MaxUint32/4 {
+		return "", fmt.Errorf("failed to encode: %q", src)
 	}
-	return C.GoString(dst), nil
+	dst := string(make([]byte, 4*len(src)+1))
+	cDst, cSrc := C.CString(dst), C.CString(src)
+	defer C.free(unsafe.Pointer(cDst))
+	defer C.free(unsafe.Pointer(cSrc))
+	C.strvis(cDst, cSrc, C.VIS_WHITE|C.VIS_OCTAL|C.VIS_GLOB)
+
+	return C.GoString(cDst), nil
 }

@@ -47,9 +47,13 @@ func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHie
 
 			// Insert a comment of the full path of the directory's name
 			if creator.curDir != nil {
+				dirname, err := creator.curDir.Path()
+				if err != nil {
+					return err
+				}
 				creator.DH.Entries = append(creator.DH.Entries, Entry{
 					Pos:  len(creator.DH.Entries),
-					Raw:  "# " + filepath.Join(creator.curDir.Path(), entryPathName),
+					Raw:  "# " + filepath.Join(dirname, entryPathName),
 					Type: CommentType,
 				})
 			} else {
@@ -147,9 +151,12 @@ func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHie
 				}
 			}
 		}
-
+		encodedEntryName, err := Vis(entryPathName)
+		if err != nil {
+			return err
+		}
 		e := Entry{
-			Name:   entryPathName,
+			Name:   encodedEntryName,
 			Pos:    len(creator.DH.Entries),
 			Type:   RelativeType,
 			Set:    creator.curSet,

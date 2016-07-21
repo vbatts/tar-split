@@ -119,12 +119,20 @@ func TestTar(t *testing.T) {
 			errors += "Keyword validation errors\n"
 		case len(res.Missing) > 0:
 			for _, m := range res.Missing {
-				t.Errorf("Missing file: %s\n", m.Path())
+				missingpath, err := m.Path()
+				if err != nil {
+					t.Fatal(err)
+				}
+				t.Errorf("Missing file: %s\n", missingpath)
 			}
 			errors += "Missing files not expected for this test\n"
 		case len(res.Extra) > 0:
 			for _, e := range res.Extra {
-				t.Errorf("Extra file: %s\n", e.Path())
+				extrapath, err := e.Path()
+				if err != nil {
+					t.Fatal(err)
+				}
+				t.Errorf("Extra file: %s\n", extrapath)
 			}
 			errors += "Extra files not expected for this test\n"
 		}

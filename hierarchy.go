@@ -16,7 +16,8 @@ func (dh DirectoryHierarchy) WriteTo(w io.Writer) (n int64, err error) {
 	sort.Sort(byPos(dh.Entries))
 	var sum int64
 	for _, e := range dh.Entries {
-		i, err := io.WriteString(w, e.String()+"\n")
+		str := e.String()
+		i, err := io.WriteString(w, str+"\n")
 		if err != nil {
 			return sum, err
 		}

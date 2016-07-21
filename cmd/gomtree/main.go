@@ -202,13 +202,25 @@ func main() {
 			if len(res.Extra) > 0 {
 				defer os.Exit(1)
 				for _, extra := range res.Extra {
-					fmt.Printf("%s extra\n", extra.Path())
+					extrapath, err := extra.Path()
+					if err != nil {
+						log.Println(err)
+						isErr = true
+						return
+					}
+					fmt.Printf("%s extra\n", extrapath)
 				}
 			}
 			if len(res.Missing) > 0 {
 				defer os.Exit(1)
 				for _, missing := range res.Missing {
-					fmt.Printf("%s missing\n", missing.Path())
+					missingpath, err := missing.Path()
+					if err != nil {
+						log.Println(err)
+						isErr = true
+						return
+					}
+					fmt.Printf("%s missing\n", missingpath)
 				}
 			}
 		} else {

@@ -1,15 +1,22 @@
 package mtree
 
 // #include "vis.h"
+// #include <stdlib.h>
 import "C"
-import "fmt"
+import (
+	"fmt"
+	"unsafe"
+)
 
-func Unvis(str string) (string, error) {
-	dst := new(C.char)
-	ret := C.strunvis(dst, C.CString(str))
-	if ret == 0 {
-		return "", fmt.Errorf("failed to encode string")
+// Unvis is a wrapper for the C implementation of unvis, which decodes a string
+// that potentially has characters that are encoded with Vis
+func Unvis(src string) (string, error) {
+	cDst, cSrc := C.CString(string(make([]byte, len(src)+1))), C.CString(src)
+	defer C.free(unsafe.Pointer(cDst))
+	defer C.free(unsafe.Pointer(cSrc))
+	ret := C.strunvis(cDst, cSrc)
+	if ret == -1 {
+		return "", fmt.Errorf("failed to decode: %q", src)
 	}
-
-	return C.GoString(dst), nil
+	return C.GoString(cDst), nil
 }
