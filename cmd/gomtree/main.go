@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -17,7 +19,37 @@ var (
 	flAddKeywords  = flag.String("K", "", "Add the specified (delimited by comma or space) keywords to the current set of keywords")
 	flUseKeywords  = flag.String("k", "", "Use the specified (delimited by comma or space) keywords as the current set of keywords")
 	flListKeywords = flag.Bool("list-keywords", false, "List the keywords available")
+	flResultFormat = flag.String("result-format", "bsd", "output the validation results using the given format (bsd, json, path)")
 )
+
+var formats = map[string]func(*mtree.Result) string{
+	// Outputs the errors in the BSD format.
+	"bsd": func(r *mtree.Result) string {
+		var buffer bytes.Buffer
+		for _, fail := range r.Failures {
+			fmt.Fprintln(&buffer, fail)
+		}
+		return buffer.String()
+	},
+
+	// Outputs the full result struct in JSON.
+	"json": func(r *mtree.Result) string {
+		var buffer bytes.Buffer
+		if err := json.NewEncoder(&buffer).Encode(r); err != nil {
+			panic(err)
+		}
+		return buffer.String()
+	},
+
+	// Outputs only the paths which failed to validate.
+	"path": func(r *mtree.Result) string {
+		var buffer bytes.Buffer
+		for _, fail := range r.Failures {
+			fmt.Fprintln(&buffer, fail.Path)
+		}
+		return buffer.String()
+	},
+}
 
 func main() {
 	flag.Parse()
@@ -40,6 +72,14 @@ func main() {
 				fmt.Println(" ", k)
 			}
 		}
+		return
+	}
+
+	// --output
+	formatFunc, ok := formats[*flResultFormat]
+	if !ok {
+		log.Printf("invalid output format: %s", *flResultFormat)
+		isErr = true
 		return
 	}
 
@@ -103,8 +143,11 @@ func main() {
 		}
 		if res != nil && len(res.Failures) > 0 {
 			defer os.Exit(1)
-			for _, failure := range res.Failures {
-				fmt.Println(failure)
+			out := formatFunc(res)
+			if _, err := os.Stdout.Write([]byte(out)); err != nil {
+				log.Println(err)
+				isErr = true
+				return
 			}
 		}
 	} else {
