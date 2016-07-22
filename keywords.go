@@ -160,6 +160,11 @@ var (
 		"sha512":          hasherKeywordFunc("sha512", sha512.New),             // The SHA512 message digest of the file
 		"sha512digest":    hasherKeywordFunc("sha512digest", sha512.New),       // A synonym for `sha512`
 
+		// This is not an upstreamed keyword, but used to vary from "time", as tar
+		// archives do not store nanosecond precision. So comparing on "time" will
+		// be only seconds level accurate.
+		"tar_time": tartimeKeywordFunc, // The last modification time of the file, from a tar archive mtime
+
 		// This is not an upstreamed keyword, but a needed attribute for file validation.
 		// The pattern for this keyword key is prefixed by "xattr." followed by the extended attribute "namespace.key".
 		// The keyword value is the SHA1 digest of the extended attribute's value.
@@ -206,6 +211,13 @@ var (
 			}
 			return fmt.Sprintf("%s=%x", name, h.Sum(nil)), nil
 		}
+	}
+	tartimeKeywordFunc = func(path string, info os.FileInfo, r io.Reader) (string, error) {
+		t := info.ModTime().Unix()
+		if t == 0 {
+			return "tar_time=0.000000000", nil
+		}
+		return fmt.Sprintf("tar_time=%d.000000000", t), nil
 	}
 	timeKeywordFunc = func(path string, info os.FileInfo, r io.Reader) (string, error) {
 		t := info.ModTime().UnixNano()

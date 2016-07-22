@@ -102,6 +102,9 @@ func (ts *tarStream) readHeaders() {
 
 		// now collect keywords on the file
 		for _, keyword := range ts.keywords {
+			if keyword == "time" {
+				keyword = "tar_time"
+			}
 			if keyFunc, ok := KeywordFuncs[keyword]; ok {
 				// We can't extract directories on to disk, so "size" keyword
 				// is irrelevant for now
@@ -140,6 +143,9 @@ func (ts *tarStream) readHeaders() {
 				Type: SpecialType,
 			}
 			for _, setKW := range SetKeywords {
+				if setKW == "time" {
+					setKW = "tar_time"
+				}
 				if keyFunc, ok := KeywordFuncs[setKW]; ok {
 					val, err := keyFunc(hdr.Name, hdr.FileInfo(), tmpFile)
 					if err != nil {
