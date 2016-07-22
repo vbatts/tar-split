@@ -94,7 +94,11 @@ func main() {
 			currentKeywords = append([]string{"type"}, currentKeywords...)
 		}
 	} else {
-		currentKeywords = mtree.DefaultKeywords[:]
+		if *flTar != "" {
+			currentKeywords = mtree.DefaultTarKeywords[:]
+		} else {
+			currentKeywords = mtree.DefaultKeywords[:]
+		}
 	}
 	// -K <keywords>
 	if *flAddKeywords != "" {
@@ -192,13 +196,9 @@ func main() {
 				log.Println(err)
 				isErr = true
 				return
-		if res != nil {
-			if len(res.Failures) > 0 {
-				defer os.Exit(1)
-				for _, failure := range res.Failures {
-					fmt.Println(failure)
-				}
 			}
+		}
+		if res != nil {
 			if len(res.Extra) > 0 {
 				defer os.Exit(1)
 				for _, extra := range res.Extra {

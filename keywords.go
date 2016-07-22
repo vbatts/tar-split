@@ -59,6 +59,11 @@ func (kv KeyVal) Value() string {
 	return strings.SplitN(strings.TrimSpace(string(kv)), "=", 2)[1]
 }
 
+// ChangeValue changes the value of a KeyVal
+func (kv KeyVal) ChangeValue(newval string) string {
+	return fmt.Sprintf("%s=%s", kv.Keyword(), newval)
+}
+
 // keywordSelector takes an array of "keyword=value" and filters out that only the set of words
 func keywordSelector(keyval, words []string) []string {
 	retList := []string{}
@@ -128,6 +133,17 @@ var (
 		"link",
 		"nlink",
 		"time",
+	}
+	// DefaultTarKeywords has keywords that should be used when creating a manifest from
+	// an archive. Currently, evaluating the # of hardlinks has not been implemented yet
+	DefaultTarKeywords = []string{
+		"size",
+		"type",
+		"uid",
+		"gid",
+		"mode",
+		"link",
+		"tar_time",
 	}
 	// SetKeywords is the default set of keywords calculated for a `/set` SpecialType
 	SetKeywords = []string{
@@ -213,11 +229,7 @@ var (
 		}
 	}
 	tartimeKeywordFunc = func(path string, info os.FileInfo, r io.Reader) (string, error) {
-		t := info.ModTime().Unix()
-		if t == 0 {
-			return "tar_time=0.000000000", nil
-		}
-		return fmt.Sprintf("tar_time=%d.000000000", t), nil
+		return fmt.Sprintf("tar_time=%d.000000000", info.ModTime().Unix()), nil
 	}
 	timeKeywordFunc = func(path string, info os.FileInfo, r io.Reader) (string, error) {
 		t := info.ModTime().UnixNano()

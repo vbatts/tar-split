@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 )
 
 // Result of a Check
@@ -66,7 +67,15 @@ func Check(root string, dh *DirectoryHierarchy, keywords []string) (*Result, err
 			}
 
 			for _, kv := range kvs {
-				keywordFunc, ok := KeywordFuncs[kv.Keyword()]
+				kw := kv.Keyword()
+				// 'tar_time' keyword evaluation wins against 'time' keyword evaluation
+				if kv.Keyword() == "time" && inSlice("tar_time", keywords) {
+					kw = "tar_time"
+					tartime := fmt.Sprintf("%s.%s", (strings.Split(kv.Value(), ".")[0]), "000000000")
+					kv = KeyVal(KeyVal(kw).ChangeValue(tartime))
+				}
+
+				keywordFunc, ok := KeywordFuncs[kw]
 				if !ok {
 					return nil, fmt.Errorf("Unknown keyword %q for file %q", kv.Keyword(), e.Path())
 				}

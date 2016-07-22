@@ -80,7 +80,11 @@ func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHie
 							defer fh.Close()
 							r = fh
 						}
-						if str, err := KeywordFuncs[keyword](path, info, r); err == nil && str != "" {
+						keywordFunc, ok := KeywordFuncs[keyword]
+						if !ok {
+							return fmt.Errorf("Unknown keyword %q for file %q", keyword, path)
+						}
+						if str, err := keywordFunc(path, info, r); err == nil && str != "" {
 							e.Keywords = append(e.Keywords, str)
 						} else if err != nil {
 							return err
@@ -107,7 +111,11 @@ func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHie
 							defer fh.Close()
 							r = fh
 						}
-						str, err := KeywordFuncs[keyword](path, info, r)
+						keywordFunc, ok := KeywordFuncs[keyword]
+						if !ok {
+							return fmt.Errorf("Unknown keyword %q for file %q", keyword, path)
+						}
+						str, err := keywordFunc(path, info, r)
 						if err != nil {
 							return err
 						}
@@ -158,7 +166,11 @@ func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHie
 					defer fh.Close()
 					r = fh
 				}
-				str, err := KeywordFuncs[keyword](path, info, r)
+				keywordFunc, ok := KeywordFuncs[keyword]
+				if !ok {
+					return fmt.Errorf("Unknown keyword %q for file %q", keyword, path)
+				}
+				str, err := keywordFunc(path, info, r)
 				if err != nil {
 					return err
 				}

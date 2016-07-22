@@ -93,6 +93,8 @@ func (ts *tarStream) readHeaders() {
 			ts.pipeReader.CloseWithError(err)
 			return
 		}
+		defer tmpFile.Close()
+		defer os.Remove(tmpFile.Name())
 
 		// Alright, it's either file or directory
 		e := Entry{
@@ -119,7 +121,6 @@ func (ts *tarStream) readHeaders() {
 				if err != nil {
 					ts.setErr(err)
 				}
-
 				// for good measure, check that we actually get a value for a keyword
 				if val != "" {
 					e.Keywords = append(e.Keywords, val)
@@ -134,7 +135,6 @@ func (ts *tarStream) readHeaders() {
 				}
 			}
 		}
-
 		// collect meta-set keywords for a directory so that we can build the
 		// actual sets in `flatten`
 		if hdr.FileInfo().IsDir() {
@@ -168,9 +168,6 @@ func (ts *tarStream) readHeaders() {
 			}
 		}
 		populateTree(&root, &e, hdr, ts)
-
-		tmpFile.Close()
-		os.Remove(tmpFile.Name())
 	}
 }
 

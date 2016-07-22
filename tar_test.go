@@ -3,7 +3,6 @@ package mtree
 import (
 	"archive/tar"
 	"bytes"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -115,17 +114,17 @@ func TestTar(t *testing.T) {
 		switch {
 		case len(res.Failures) > 0:
 			for _, f := range res.Failures {
-				fmt.Printf("%s\n", f)
+				t.Errorf("%s\n", f)
 			}
 			errors += "Keyword validation errors\n"
 		case len(res.Missing) > 0:
 			for _, m := range res.Missing {
-				fmt.Printf("Missing file: %s\n", m.Path())
+				t.Errorf("Missing file: %s\n", m.Path())
 			}
 			errors += "Missing files not expected for this test\n"
 		case len(res.Extra) > 0:
 			for _, e := range res.Extra {
-				fmt.Printf("Extra file: %s\n", e.Path())
+				t.Errorf("Extra file: %s\n", e.Path())
 			}
 			errors += "Extra files not expected for this test\n"
 		}
