@@ -260,3 +260,38 @@ func TestIgnoreComments(t *testing.T) {
 		t.Fatal(res.Failures)
 	}
 }
+
+func TestCheckNeedsEncoding(t *testing.T) {
+	dir, err := ioutil.TempDir("", "test-needs-encoding")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	fh, err := os.Create(filepath.Join(dir, "file[ "))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := fh.Close(); err != nil {
+		t.Error(err)
+	}
+	fh, err = os.Create(filepath.Join(dir, "    , should work"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := fh.Close(); err != nil {
+		t.Error(err)
+	}
+
+	dh, err := Walk(dir, nil, DefaultKeywords)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := Check(dir, dh, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res.Failures) > 0 {
+		t.Fatal(res.Failures)
+	}
+}

@@ -97,8 +97,15 @@ func (ts *tarStream) readHeaders() {
 		defer os.Remove(tmpFile.Name())
 
 		// Alright, it's either file or directory
+		encodedName, err := Vis(filepath.Base(hdr.Name))
+		if err != nil {
+			tmpFile.Close()
+			os.Remove(tmpFile.Name())
+			ts.pipeReader.CloseWithError(err)
+			return
+		}
 		e := Entry{
-			Name: filepath.Base(hdr.Name),
+			Name: encodedName,
 			Type: RelativeType,
 		}
 
@@ -213,8 +220,13 @@ func populateTree(root, e *Entry, hdr *tar.Header, ts *tarStream) {
 			if isDir {
 				newEntry = e
 			} else {
+				encodedName, err := Vis(name)
+				if err != nil {
+					ts.setErr(err)
+					return
+				}
 				newEntry = &Entry{
-					Name: name,
+					Name: encodedName,
 					Type: RelativeType,
 				}
 			}
@@ -230,8 +242,13 @@ func populateTree(root, e *Entry, hdr *tar.Header, ts *tarStream) {
 		parent.Children = append([]*Entry{e}, parent.Children...)
 		e.Parent = parent
 	} else {
+		commentpath, err := e.Path()
+		if err != nil {
+			ts.setErr(err)
+			return
+		}
 		commentEntry := Entry{
-			Raw:  "# " + e.Path(),
+			Raw:  "# " + commentpath,
 			Type: CommentType,
 		}
 		e.Prev = &commentEntry

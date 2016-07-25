@@ -48,14 +48,25 @@ func (e Entry) Ascend() *Entry {
 	return e.Parent
 }
 
-// Path provides the full path of the file, despite RelativeType or FullType
-func (e Entry) Path() string {
-	if e.Parent == nil || e.Type == FullType {
-		return filepath.Clean(e.Name)
+// Path provides the full path of the file, despite RelativeType or FullType. It
+// will be in Unvis'd form.
+func (e Entry) Path() (string, error) {
+	decodedName, err := Unvis(e.Name)
+	if err != nil {
+		return "", err
 	}
-	return filepath.Clean(filepath.Join(e.Parent.Path(), e.Name))
+	if e.Parent == nil || e.Type == FullType {
+		return filepath.Clean(decodedName), nil
+	}
+	parentName, err := e.Parent.Path()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Clean(filepath.Join(parentName, decodedName)), nil
 }
 
+// String joins a file with its associated keywords. The file name will be the
+// Vis'd encoded version so that it can be parsed appropriately when Check'd.
 func (e Entry) String() string {
 	if e.Raw != "" {
 		return e.Raw

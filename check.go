@@ -53,8 +53,11 @@ func Check(root string, dh *DirectoryHierarchy, keywords []string) (*Result, err
 				creator.curSet = nil
 			}
 		case RelativeType, FullType:
-			filename := e.Path()
-			info, err := os.Lstat(filename)
+			pathname, err := e.Path()
+			if err != nil {
+				return nil, err
+			}
+			info, err := os.Lstat(pathname)
 			if err != nil {
 				return nil, err
 			}
@@ -77,23 +80,23 @@ func Check(root string, dh *DirectoryHierarchy, keywords []string) (*Result, err
 
 				keywordFunc, ok := KeywordFuncs[kw]
 				if !ok {
-					return nil, fmt.Errorf("Unknown keyword %q for file %q", kv.Keyword(), e.Path())
+					return nil, fmt.Errorf("Unknown keyword %q for file %q", kv.Keyword(), pathname)
 				}
 				if keywords != nil && !inSlice(kv.Keyword(), keywords) {
 					continue
 				}
-				fh, err := os.Open(filename)
+				fh, err := os.Open(pathname)
 				if err != nil {
 					return nil, err
 				}
-				curKeyVal, err := keywordFunc(filename, info, fh)
+				curKeyVal, err := keywordFunc(pathname, info, fh)
 				if err != nil {
 					fh.Close()
 					return nil, err
 				}
 				fh.Close()
 				if string(kv) != curKeyVal {
-					failure := Failure{Path: e.Path(), Keyword: kv.Keyword(), Expected: kv.Value(), Got: KeyVal(curKeyVal).Value()}
+					failure := Failure{Path: pathname, Keyword: kv.Keyword(), Expected: kv.Value(), Got: KeyVal(curKeyVal).Value()}
 					result.Failures = append(result.Failures, failure)
 				}
 			}
@@ -133,8 +136,12 @@ func TarCheck(tarDH, dh *DirectoryHierarchy, keywords []string) (*Result, error)
 				creator.curSet = nil
 			}
 		case RelativeType, FullType:
+			pathname, err := e.Path()
+			if err != nil {
+				return nil, err
+			}
 			if outOfTree {
-				return &result, fmt.Errorf("No parent node from %s", e.Path())
+				return &result, fmt.Errorf("No parent node from %s", pathname)
 			}
 			// TODO: handle the case where "." is not the first Entry to be found
 			tarEntry := curDir.Descend(e.Name)
@@ -165,15 +172,20 @@ func TarCheck(tarDH, dh *DirectoryHierarchy, keywords []string) (*Result, error)
 			}
 
 			for _, kv := range kvs {
+
 				if _, ok := KeywordFuncs[kv.Keyword()]; !ok {
-					return nil, fmt.Errorf("Unknown keyword %q for file %q", kv.Keyword(), e.Path())
+					return nil, fmt.Errorf("Unknown keyword %q for file %q", kv.Keyword(), pathname)
 				}
 				if keywords != nil && !inSlice(kv.Keyword(), keywords) {
 					continue
 				}
+				tarpath, err := tarEntry.Path()
+				if err != nil {
+					return nil, err
+				}
 				if tarkv := tarkvs.Has(kv.Keyword()); tarkv != emptyKV {
 					if string(tarkv) != string(kv) {
-						failure := Failure{Path: tarEntry.Path(), Keyword: kv.Keyword(), Expected: kv.Value(), Got: tarkv.Value()}
+						failure := Failure{Path: tarpath, Keyword: kv.Keyword(), Expected: kv.Value(), Got: tarkv.Value()}
 						result.Failures = append(result.Failures, failure)
 					}
 				}
