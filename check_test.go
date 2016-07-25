@@ -143,6 +143,58 @@ func TestTimeComparison(t *testing.T) {
 	}
 }
 
+func TestTarTime(t *testing.T) {
+	dir, err := ioutil.TempDir("", "test-tar-time.")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	// This is the format of time from FreeBSD
+	spec := `
+/set type=file time=5.454353132
+.               type=dir time=5.123456789
+    file       time=5.911134111
+..
+`
+
+	fh, err := os.Create(filepath.Join(dir, "file"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// This is what mode we're checking for. Round integer of epoch seconds
+	epoch := time.Unix(5, 0)
+	if err := os.Chtimes(fh.Name(), epoch, epoch); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(dir, epoch, epoch); err != nil {
+		t.Fatal(err)
+	}
+	if err := fh.Close(); err != nil {
+		t.Error(err)
+	}
+
+	dh, err := ParseSpec(bytes.NewBufferString(spec))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// make sure "time" keyword works
+	_, err = Check(dir, dh, DefaultKeywords)
+	if err != nil {
+		t.Error(err)
+	}
+
+	// make sure tar_time wins
+	res, err := Check(dir, dh, append(DefaultKeywords, "tar_time"))
+	if err != nil {
+		t.Error(err)
+	}
+	if len(res.Failures) > 0 {
+		t.Fatal(res.Failures)
+	}
+}
+
 func TestIgnoreComments(t *testing.T) {
 	dir, err := ioutil.TempDir("", "test-comments.")
 	if err != nil {

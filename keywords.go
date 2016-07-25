@@ -1,6 +1,7 @@
 package mtree
 
 import (
+	"archive/tar"
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
@@ -17,7 +18,10 @@ import (
 // KeywordFunc is the type of a function called on each file to be included in
 // a DirectoryHierarchy, that will produce the string output of the keyword to
 // be included for the file entry. Otherwise, empty string.
-type KeywordFunc func(path string, info os.FileInfo) (string, error)
+// io.Reader `r` is to the file stream for the file payload. While this
+// function takes an io.Reader, the caller needs to reset it to the beginning
+// for each new KeywordFunc
+type KeywordFunc func(path string, info os.FileInfo, r io.Reader) (string, error)
 
 // KeyVal is a "keyword=value"
 type KeyVal string
@@ -53,6 +57,11 @@ func (kv KeyVal) Value() string {
 		return ""
 	}
 	return strings.SplitN(strings.TrimSpace(string(kv)), "=", 2)[1]
+}
+
+// ChangeValue changes the value of a KeyVal
+func (kv KeyVal) ChangeValue(newval string) string {
+	return fmt.Sprintf("%s=%s", kv.Keyword(), newval)
 }
 
 // keywordSelector takes an array of "keyword=value" and filters out that only the set of words
@@ -125,6 +134,17 @@ var (
 		"nlink",
 		"time",
 	}
+	// DefaultTarKeywords has keywords that should be used when creating a manifest from
+	// an archive. Currently, evaluating the # of hardlinks has not been implemented yet
+	DefaultTarKeywords = []string{
+		"size",
+		"type",
+		"uid",
+		"gid",
+		"mode",
+		"link",
+		"tar_time",
+	}
 	// SetKeywords is the default set of keywords calculated for a `/set` SpecialType
 	SetKeywords = []string{
 		"uid",
@@ -156,6 +176,11 @@ var (
 		"sha512":          hasherKeywordFunc("sha512", sha512.New),             // The SHA512 message digest of the file
 		"sha512digest":    hasherKeywordFunc("sha512digest", sha512.New),       // A synonym for `sha512`
 
+		// This is not an upstreamed keyword, but used to vary from "time", as tar
+		// archives do not store nanosecond precision. So comparing on "time" will
+		// be only seconds level accurate.
+		"tar_time": tartimeKeywordFunc, // The last modification time of the file, from a tar archive mtime
+
 		// This is not an upstreamed keyword, but a needed attribute for file validation.
 		// The pattern for this keyword key is prefixed by "xattr." followed by the extended attribute "namespace.key".
 		// The keyword value is the SHA1 digest of the extended attribute's value.
@@ -165,7 +190,7 @@ var (
 )
 
 var (
-	modeKeywordFunc = func(path string, info os.FileInfo) (string, error) {
+	modeKeywordFunc = func(path string, info os.FileInfo, r io.Reader) (string, error) {
 		permissions := info.Mode().Perm()
 		if os.ModeSetuid&info.Mode() > 0 {
 			permissions |= (1 << 11)
@@ -178,52 +203,49 @@ var (
 		}
 		return fmt.Sprintf("mode=%#o", permissions), nil
 	}
-	sizeKeywordFunc = func(path string, info os.FileInfo) (string, error) {
+	sizeKeywordFunc = func(path string, info os.FileInfo, r io.Reader) (string, error) {
 		return fmt.Sprintf("size=%d", info.Size()), nil
 	}
-	cksumKeywordFunc = func(path string, info os.FileInfo) (string, error) {
+	cksumKeywordFunc = func(path string, info os.FileInfo, r io.Reader) (string, error) {
 		if !info.Mode().IsRegular() {
 			return "", nil
 		}
-
-		fh, err := os.Open(path)
-		if err != nil {
-			return "", err
-		}
-		defer fh.Close()
-		sum, _, err := cksum(fh)
+		sum, _, err := cksum(r)
 		if err != nil {
 			return "", err
 		}
 		return fmt.Sprintf("cksum=%d", sum), nil
 	}
 	hasherKeywordFunc = func(name string, newHash func() hash.Hash) KeywordFunc {
-		return func(path string, info os.FileInfo) (string, error) {
+		return func(path string, info os.FileInfo, r io.Reader) (string, error) {
 			if !info.Mode().IsRegular() {
 				return "", nil
 			}
-
-			fh, err := os.Open(path)
-			if err != nil {
-				return "", err
-			}
-			defer fh.Close()
-
 			h := newHash()
-			if _, err := io.Copy(h, fh); err != nil {
+			if _, err := io.Copy(h, r); err != nil {
 				return "", err
 			}
 			return fmt.Sprintf("%s=%x", name, h.Sum(nil)), nil
 		}
 	}
-	timeKeywordFunc = func(path string, info os.FileInfo) (string, error) {
+	tartimeKeywordFunc = func(path string, info os.FileInfo, r io.Reader) (string, error) {
+		return fmt.Sprintf("tar_time=%d.000000000", info.ModTime().Unix()), nil
+	}
+	timeKeywordFunc = func(path string, info os.FileInfo, r io.Reader) (string, error) {
 		t := info.ModTime().UnixNano()
 		if t == 0 {
 			return "time=0.000000000", nil
 		}
 		return fmt.Sprintf("time=%d.%9.9d", (t / 1e9), (t % (t / 1e9))), nil
 	}
-	linkKeywordFunc = func(path string, info os.FileInfo) (string, error) {
+	linkKeywordFunc = func(path string, info os.FileInfo, r io.Reader) (string, error) {
+		if sys, ok := info.Sys().(*tar.Header); ok {
+			if sys.Linkname != "" {
+				return fmt.Sprintf("link=%s", sys.Linkname), nil
+			}
+			return "", nil
+		}
+
 		if info.Mode()&os.ModeSymlink != 0 {
 			str, err := os.Readlink(path)
 			if err != nil {
@@ -233,7 +255,7 @@ var (
 		}
 		return "", nil
 	}
-	typeKeywordFunc = func(path string, info os.FileInfo) (string, error) {
+	typeKeywordFunc = func(path string, info os.FileInfo, r io.Reader) (string, error) {
 		if info.Mode().IsDir() {
 			return "type=dir", nil
 		}
