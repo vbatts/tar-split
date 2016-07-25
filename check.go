@@ -11,8 +11,8 @@ import (
 type Result struct {
 	// list of any failures in the Check
 	Failures []Failure `json:"failures"`
-	Missing  []Entry
-	Extra    []Entry
+	Missing  []Entry   `json:"missing,omitempty"`
+	Extra    []Entry   `json:"extra,omitempty"`
 }
 
 // Failure of a particular keyword for a path
