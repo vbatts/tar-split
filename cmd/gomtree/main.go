@@ -227,12 +227,12 @@ func main() {
 					fmt.Printf("%s missing\n", missingpath)
 				}
 			}
-		} else {
-			log.Println("neither validating or creating a manifest. Please provide additional arguments")
-			isErr = true
-			defer os.Exit(1)
-			return
 		}
+	} else {
+		log.Println("neither validating or creating a manifest. Please provide additional arguments")
+		isErr = true
+		defer os.Exit(1)
+		return
 	}
 }
 
