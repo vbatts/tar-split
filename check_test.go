@@ -97,6 +97,24 @@ func ExampleCheck() {
 	}
 }
 
+// Tests default action for evaluating a symlink, which is just to compare the
+// link itself, not to follow it
+func TestDefaultBrokenLink(t *testing.T) {
+	dh, err := Walk("./testdata/dirwithbrokenlink", nil, append(DefaultKeywords, "sha1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := Check("./testdata/dirwithbrokenlink", dh, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res != nil && len(res.Failures) > 0 {
+		for _, f := range res.Failures {
+			t.Error(f)
+		}
+	}
+}
+
 // https://github.com/vbatts/go-mtree/issues/8
 func TestTimeComparison(t *testing.T) {
 	dir, err := ioutil.TempDir("", "test-time.")

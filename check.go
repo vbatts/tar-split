@@ -84,16 +84,25 @@ func Check(root string, dh *DirectoryHierarchy, keywords []string) (*Result, err
 				if keywords != nil && !inSlice(kv.Keyword(), keywords) {
 					continue
 				}
-				fh, err := os.Open(pathname)
-				if err != nil {
-					return nil, err
-				}
-				curKeyVal, err := keywordFunc(pathname, info, fh)
-				if err != nil {
+
+				var curKeyVal string
+				if info.Mode().IsRegular() {
+					fh, err := os.Open(pathname)
+					if err != nil {
+						return nil, err
+					}
+					curKeyVal, err = keywordFunc(pathname, info, fh)
+					if err != nil {
+						fh.Close()
+						return nil, err
+					}
 					fh.Close()
-					return nil, err
+				} else {
+					curKeyVal, err = keywordFunc(pathname, info, nil)
+					if err != nil {
+						return nil, err
+					}
 				}
-				fh.Close()
 				if string(kv) != curKeyVal {
 					failure := Failure{Path: pathname, Keyword: kv.Keyword(), Expected: kv.Value(), Got: KeyVal(curKeyVal).Value()}
 					result.Failures = append(result.Failures, failure)
@@ -174,7 +183,7 @@ func TarCheck(tarDH, dh *DirectoryHierarchy, keywords []string) (*Result, error)
 			}
 
 			for _, kv := range kvs {
-
+				// TODO: keep track of symlinks
 				if _, ok := KeywordFuncs[kv.Keyword()]; !ok {
 					return nil, fmt.Errorf("Unknown keyword %q for file %q", kv.Keyword(), pathname)
 				}
