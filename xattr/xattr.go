@@ -29,7 +29,14 @@ func List(path string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return strings.Split(strings.TrimRight(string(dest[:i]), nilByte), nilByte), nil
+
+	// If the returned list is empty, return nil instead of []string{""}
+	str := string(dest[:i])
+	if str == "" {
+		return nil, nil
+	}
+
+	return strings.Split(strings.TrimRight(str, nilByte), nilByte), nil
 }
 
 const nilByte = "\x00"

@@ -23,6 +23,8 @@ var (
 	flListKeywords = flag.Bool("list-keywords", false, "List the keywords available")
 	flResultFormat = flag.String("result-format", "bsd", "output the validation results using the given format (bsd, json, path)")
 	flTar          = flag.String("T", "", "use tar archive to create or validate a directory hierarchy spec")
+
+	flDebug = flag.Bool("debug", false, "output debug info to STDERR")
 )
 
 var formats = map[string]func(*mtree.Result) string{
@@ -56,6 +58,10 @@ var formats = map[string]func(*mtree.Result) string{
 
 func main() {
 	flag.Parse()
+
+	if *flDebug {
+		os.Setenv("DEBUG", "1")
+	}
 
 	// so that defers cleanly exec
 	var isErr bool
