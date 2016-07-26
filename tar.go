@@ -93,9 +93,6 @@ func (ts *tarStream) readHeaders() {
 			ts.pipeReader.CloseWithError(err)
 			return
 		}
-		defer tmpFile.Close()
-		defer os.Remove(tmpFile.Name())
-
 		// Alright, it's either file or directory
 		encodedName, err := Vis(filepath.Base(hdr.Name))
 		if err != nil {
@@ -175,6 +172,8 @@ func (ts *tarStream) readHeaders() {
 			}
 		}
 		populateTree(&root, &e, hdr, ts)
+		tmpFile.Close()
+		os.Remove(tmpFile.Name())
 	}
 }
 
