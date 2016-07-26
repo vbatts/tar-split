@@ -102,7 +102,11 @@ func main() {
 	}
 	// -K <keywords>
 	if *flAddKeywords != "" {
-		currentKeywords = append(currentKeywords, splitKeywordsArg(*flAddKeywords)...)
+		for _, kw := range splitKeywordsArg(*flAddKeywords) {
+			if !inSlice(kw, currentKeywords) {
+				currentKeywords = append(currentKeywords, kw)
+			}
+		}
 	}
 
 	// -f <file>
