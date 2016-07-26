@@ -23,6 +23,7 @@ var (
 	flListKeywords = flag.Bool("list-keywords", false, "List the keywords available")
 	flResultFormat = flag.String("result-format", "bsd", "output the validation results using the given format (bsd, json, path)")
 	flTar          = flag.String("T", "", "use tar archive to create or validate a directory hierarchy spec")
+	flBsdKeywords  = flag.Bool("bsd-keywords", false, "only operate on keywords that are supported by upstream mtree(8)")
 
 	flDebug = flag.Bool("debug", false, "output debug info to STDERR")
 )
@@ -71,20 +72,24 @@ func main() {
 		}
 	}()
 
-	// -l
+	// -list-keywords
 	if *flListKeywords {
 		fmt.Println("Available keywords:")
 		for k := range mtree.KeywordFuncs {
-			if inSlice(k, mtree.DefaultKeywords) {
-				fmt.Println(" ", k, " (default)")
-			} else {
-				fmt.Println(" ", k)
+			fmt.Print(" ")
+			fmt.Print(k)
+			if mtree.Keyword(k).Default() {
+				fmt.Print(" (default)")
 			}
+			if !mtree.Keyword(k).Bsd() {
+				fmt.Print(" (not upstream)")
+			}
+			fmt.Print("\n")
 		}
 		return
 	}
 
-	// --output
+	// --result-format
 	formatFunc, ok := formats[*flResultFormat]
 	if !ok {
 		log.Printf("invalid output format: %s", *flResultFormat)
@@ -92,27 +97,44 @@ func main() {
 		return
 	}
 
-	var currentKeywords []string
+	var (
+		tmpKeywords     []string
+		currentKeywords []string
+	)
 	// -k <keywords>
 	if *flUseKeywords != "" {
-		currentKeywords = splitKeywordsArg(*flUseKeywords)
-		if !inSlice("type", currentKeywords) {
-			currentKeywords = append([]string{"type"}, currentKeywords...)
+		tmpKeywords = splitKeywordsArg(*flUseKeywords)
+		if !inSlice("type", tmpKeywords) {
+			tmpKeywords = append([]string{"type"}, tmpKeywords...)
 		}
 	} else {
 		if *flTar != "" {
-			currentKeywords = mtree.DefaultTarKeywords[:]
+			tmpKeywords = mtree.DefaultTarKeywords[:]
 		} else {
-			currentKeywords = mtree.DefaultKeywords[:]
+			tmpKeywords = mtree.DefaultKeywords[:]
 		}
 	}
+
 	// -K <keywords>
 	if *flAddKeywords != "" {
 		for _, kw := range splitKeywordsArg(*flAddKeywords) {
-			if !inSlice(kw, currentKeywords) {
-				currentKeywords = append(currentKeywords, kw)
+			if !inSlice(kw, tmpKeywords) {
+				tmpKeywords = append(tmpKeywords, kw)
 			}
 		}
+	}
+
+	// -bsd-keywords
+	if *flBsdKeywords {
+		for _, k := range tmpKeywords {
+			if mtree.Keyword(k).Bsd() {
+				currentKeywords = append(currentKeywords, k)
+			} else {
+				fmt.Fprintf(os.Stderr, "INFO: ignoring %q as it is not an upstream keyword\n", k)
+			}
+		}
+	} else {
+		currentKeywords = tmpKeywords
 	}
 
 	// -f <file>
@@ -169,6 +191,7 @@ func main() {
 			return
 		}
 	}
+
 	// -c
 	if *flCreate {
 		// create a directory hierarchy
