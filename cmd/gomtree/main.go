@@ -71,20 +71,24 @@ func main() {
 		}
 	}()
 
-	// -l
+	// -list-keywords
 	if *flListKeywords {
 		fmt.Println("Available keywords:")
 		for k := range mtree.KeywordFuncs {
-			if inSlice(k, mtree.DefaultKeywords) {
-				fmt.Println(" ", k, " (default)")
-			} else {
-				fmt.Println(" ", k)
+			fmt.Print(" ")
+			fmt.Print(k)
+			if mtree.Keyword(k).Default() {
+				fmt.Print(" (default)")
 			}
+			if !mtree.Keyword(k).Bsd() {
+				fmt.Print(" (not upstream)")
+			}
+			fmt.Print("\n")
 		}
 		return
 	}
 
-	// --output
+	// --result-format
 	formatFunc, ok := formats[*flResultFormat]
 	if !ok {
 		log.Printf("invalid output format: %s", *flResultFormat)
@@ -169,6 +173,7 @@ func main() {
 			return
 		}
 	}
+
 	// -c
 	if *flCreate {
 		// create a directory hierarchy

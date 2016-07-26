@@ -23,6 +23,20 @@ import (
 // for each new KeywordFunc
 type KeywordFunc func(path string, info os.FileInfo, r io.Reader) (string, error)
 
+// Keyword is the string name of a keyword, with some convenience functions for
+// determining whether it is a default or bsd standard keyword.
+type Keyword string
+
+// Default returns whether this keyword is in the default set of keywords
+func (k Keyword) Default() bool {
+	return inSlice(string(k), DefaultKeywords)
+}
+
+// Bsd returns whether this keyword is in the upstream FreeBSD mtree(8)
+func (k Keyword) Bsd() bool {
+	return inSlice(string(k), BsdKeywords)
+}
+
 // KeyVal is a "keyword=value"
 type KeyVal string
 
@@ -134,6 +148,7 @@ var (
 		"nlink",
 		"time",
 	}
+
 	// DefaultTarKeywords has keywords that should be used when creating a manifest from
 	// an archive. Currently, evaluating the # of hardlinks has not been implemented yet
 	DefaultTarKeywords = []string{
@@ -145,6 +160,41 @@ var (
 		"link",
 		"tar_time",
 	}
+
+	// BsdKeywords is the set of keywords that is only in the upstream FreeBSD mtree
+	BsdKeywords = []string{
+		"cksum",
+		"device",
+		"flags",
+		"ignore",
+		"gid",
+		"gname",
+		"link",
+		"md5",
+		"md5digest",
+		"mode",
+		"nlink",
+		"nochange",
+		"optional",
+		"ripemd160digest",
+		"rmd160",
+		"rmd160digest",
+		"sha1",
+		"sha1digest",
+		"sha256",
+		"sha256digest",
+		"sha384",
+		"sha384digest",
+		"sha512",
+		"sha512digest",
+		"size",
+		"tags",
+		"time",
+		"type",
+		"uid",
+		"uname",
+	}
+
 	// SetKeywords is the default set of keywords calculated for a `/set` SpecialType
 	SetKeywords = []string{
 		"uid",
