@@ -78,6 +78,15 @@ func (kv KeyVal) ChangeValue(newval string) string {
 	return fmt.Sprintf("%s=%s", kv.Keyword(), newval)
 }
 
+// KeyValEqual returns whether two KeyVals are equivalent. This takes
+// care of certain odd cases such as tar_mtime, and should be used over
+// using == comparisons directly unless you really know what you're
+// doing.
+func KeyValEqual(a, b KeyVal) bool {
+	// TODO: Implement handling of tar_mtime.
+	return a.Keyword() == b.Keyword() && a.Value() == b.Value()
+}
+
 // keywordSelector takes an array of "keyword=value" and filters out that only the set of words
 func keywordSelector(keyval, words []string) []string {
 	retList := []string{}
