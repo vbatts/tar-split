@@ -212,18 +212,18 @@ var (
 		"uname":           unameKeywordFunc,                                    // The file owner as a symbolic name
 		"mode":            modeKeywordFunc,                                     // The current file's permissions as a numeric (octal) or symbolic value
 		"cksum":           cksumKeywordFunc,                                    // The checksum of the file using the default algorithm specified by the cksum(1) utility
-		"md5":             hasherKeywordFunc("md5", md5.New),                   // The MD5 message digest of the file
+		"md5":             hasherKeywordFunc("md5digest", md5.New),             // The MD5 message digest of the file
 		"md5digest":       hasherKeywordFunc("md5digest", md5.New),             // A synonym for `md5`
-		"rmd160":          hasherKeywordFunc("rmd160", ripemd160.New),          // The RIPEMD160 message digest of the file
-		"rmd160digest":    hasherKeywordFunc("rmd160digest", ripemd160.New),    // A synonym for `rmd160`
+		"rmd160":          hasherKeywordFunc("ripemd160digest", ripemd160.New), // The RIPEMD160 message digest of the file
+		"rmd160digest":    hasherKeywordFunc("ripemd160digest", ripemd160.New), // A synonym for `rmd160`
 		"ripemd160digest": hasherKeywordFunc("ripemd160digest", ripemd160.New), // A synonym for `rmd160`
-		"sha1":            hasherKeywordFunc("sha1", sha1.New),                 // The SHA1 message digest of the file
+		"sha1":            hasherKeywordFunc("sha1digest", sha1.New),           // The SHA1 message digest of the file
 		"sha1digest":      hasherKeywordFunc("sha1digest", sha1.New),           // A synonym for `sha1`
-		"sha256":          hasherKeywordFunc("sha256", sha256.New),             // The SHA256 message digest of the file
+		"sha256":          hasherKeywordFunc("sha256digest", sha256.New),       // The SHA256 message digest of the file
 		"sha256digest":    hasherKeywordFunc("sha256digest", sha256.New),       // A synonym for `sha256`
-		"sha384":          hasherKeywordFunc("sha384", sha512.New384),          // The SHA384 message digest of the file
+		"sha384":          hasherKeywordFunc("sha384digest", sha512.New384),    // The SHA384 message digest of the file
 		"sha384digest":    hasherKeywordFunc("sha384digest", sha512.New384),    // A synonym for `sha384`
-		"sha512":          hasherKeywordFunc("sha512", sha512.New),             // The SHA512 message digest of the file
+		"sha512":          hasherKeywordFunc("sha512digest", sha512.New),       // The SHA512 message digest of the file
 		"sha512digest":    hasherKeywordFunc("sha512digest", sha512.New),       // A synonym for `sha512`
 
 		// This is not an upstreamed keyword, but used to vary from "time", as tar
