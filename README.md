@@ -55,9 +55,9 @@ keyword and values are established in the `/set` command.
 ```mtree
 # .
 /set type=file nlink=1 mode=0664 uid=1000 gid=1000
-. size=4096 type=dir mode=0775 nlink=6 time=1459370191.11179595 xattr.security.selinux=6b53fb56e2e61a6c6d672817791db03ebe693748
-    LICENSE size=1502 time=1458851690.583562292 xattr.security.selinux=6b53fb56e2e61a6c6d672817791db03ebe693748
-    README.md size=2366 mode=0644 time=1459369604.0 xattr.security.selinux=6b53fb56e2e61a6c6d672817791db03ebe693748
+. size=4096 type=dir mode=0775 nlink=6 time=1459370191.11179595 xattr.security.selinux=dW5jb25maW5lZF91Om9iamVjdF9yOnVzZXJfaG9tZV90OnMwAA==
+    LICENSE size=1502 time=1458851690.583562292 xattr.security.selinux=dW5jb25maW5lZF91Om9iamVjdF9yOnVzZXJfaG9tZV90OnMwAA==
+    README.md size=2366 mode=0644 time=1459369604.0 xattr.security.selinux=dW5jb25maW5lZF91Om9iamVjdF9yOnVzZXJfaG9tZV90OnMwAA==
 
 [...]
 ```
@@ -69,11 +69,9 @@ attributes as well as FreeBSD extended attributes.
 Since extended attributes are an unordered hashmap, this approach allows for
 checking each `<namespace>.<key>` individually.
 
-The value is the [SHA1 digest][sha1] of the value of the particular extended
-attribute. Since the values themselves could be raw bytes, this approach both
-avoids issues with encoding, as well as issues of information leaking. The
-designation of SHA1 is arbitrary and seen as a general "good enough" assertion
-of the value.
+The value is the [base64 encoded][base64] of the value of the particular
+extended attribute. Since the values themselves could be raw bytes, this
+approach avoids issues with encoding.
 
 ### Tar form
 
@@ -195,5 +193,5 @@ go build .
 [libarchive-formats(5)]: https://www.freebsd.org/cgi/man.cgi?query=libarchive-formats&sektion=5&n=1
 [archiecobbs/mtree-port]: https://github.com/archiecobbs/mtree-port
 [godoc]: https://godoc.org/github.com/vbatts/go-mtree
-[sha1]: https://tools.ietf.org/html/rfc3174
 [tar]: http://man7.org/linux/man-pages/man1/tar.1.html
+[base64]: https://tools.ietf.org/html/rfc4648
