@@ -32,7 +32,6 @@ func (f Failure) String() string {
 // the available keywords from the list and each entry in the hierarchy.
 // If keywords is nil, the check all present in the DirectoryHierarchy
 func Check(root string, dh *DirectoryHierarchy, keywords []string) (*Result, error) {
-	creator := dhCreator{DH: dh}
 	curDir, err := os.Getwd()
 	if err == nil {
 		defer os.Chdir(curDir)
@@ -41,16 +40,11 @@ func Check(root string, dh *DirectoryHierarchy, keywords []string) (*Result, err
 	if err := os.Chdir(root); err != nil {
 		return nil, err
 	}
-	sort.Sort(byPos(creator.DH.Entries))
+	sort.Sort(byPos(dh.Entries))
+
 	var result Result
-	for i, e := range creator.DH.Entries {
+	for _, e := range dh.Entries {
 		switch e.Type {
-		case SpecialType:
-			if e.Name == "/set" {
-				creator.curSet = &creator.DH.Entries[i]
-			} else if e.Name == "/unset" {
-				creator.curSet = nil
-			}
 		case RelativeType, FullType:
 			pathname, err := e.Path()
 			if err != nil {
@@ -61,12 +55,8 @@ func Check(root string, dh *DirectoryHierarchy, keywords []string) (*Result, err
 				return nil, err
 			}
 
-			var kvs KeyVals
-			if creator.curSet != nil {
-				kvs = MergeSet(creator.curSet.Keywords, e.Keywords)
-			} else {
-				kvs = NewKeyVals(e.Keywords)
-			}
+			kvs := e.AllKeys()
+
 			for _, kv := range kvs {
 				kw := kv.Keyword()
 				// 'tar_time' keyword evaluation wins against 'time' keyword evaluation
@@ -133,18 +123,11 @@ func TarCheck(tarDH, dh *DirectoryHierarchy, keywords []string) (*Result, error)
 		Type: CommentType,
 	}
 	curDir := tarRoot
-	creator := dhCreator{DH: dh}
-	sort.Sort(byPos(creator.DH.Entries))
+	sort.Sort(byPos(dh.Entries))
 
 	var outOfTree bool
-	for i, e := range creator.DH.Entries {
+	for _, e := range dh.Entries {
 		switch e.Type {
-		case SpecialType:
-			if e.Name == "/set" {
-				creator.curSet = &creator.DH.Entries[i]
-			} else if e.Name == "/unset" {
-				creator.curSet = nil
-			}
 		case RelativeType, FullType:
 			pathname, err := e.Path()
 			if err != nil {
@@ -166,20 +149,10 @@ func TarCheck(tarDH, dh *DirectoryHierarchy, keywords []string) (*Result, error)
 			}
 
 			// expected values from file hierarchy spec
-			var kvs KeyVals
-			if creator.curSet != nil {
-				kvs = MergeSet(creator.curSet.Keywords, e.Keywords)
-			} else {
-				kvs = NewKeyVals(e.Keywords)
-			}
+			kvs := e.AllKeys()
 
 			// actual
-			var tarkvs KeyVals
-			if tarEntry.Set != nil {
-				tarkvs = MergeSet(tarEntry.Set.Keywords, tarEntry.Keywords)
-			} else {
-				tarkvs = NewKeyVals(tarEntry.Keywords)
-			}
+			tarkvs := tarEntry.AllKeys()
 
 			for _, kv := range kvs {
 				// TODO: keep track of symlinks
