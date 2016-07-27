@@ -4,7 +4,7 @@
 This is a library and simple cli tool for [mtree(8)][mtree(8)] support.
 
 While the traditional `mtree` cli utility is primarily on BSDs (FreeBSD,
-openBSD, etc), but even broader support for the `mtree` specification format is
+openBSD, etc), even broader support for the `mtree` specification format is
 provided with libarchive ([libarchive-formats(5)][libarchive-formats(5)]).
 
 There is also an [mtree port for Linux][archiecobbs/mtree-port] though it is
@@ -20,9 +20,14 @@ files are often a critical aspect of the file, holding ACLs, capabilities, etc.
 While FreeBSD filesystem do support `extattr`, this feature has not made its
 way into their `mtree`.
 
-This implementation of mtree supports an additional "keyword" of `xattr`. If
-you include this keyword, then the FreeBSD `mtree` will fail as it is an
-unknown keyword to that implementation.
+This implementation of mtree supports a few non-upstream "keyword"s, such as:
+`xattr` and `tar_time`. If you include these keywords, the FreeBSD `mtree`
+will fail, as they are unknown keywords to that implementation.
+
+To have `go-mtree` produce specifications that will be 
+strictly compatible with the BSD `mtree`, use the `-bsd-keywords` flag when
+creating a manifest. This will make sure that only the keywords supported by
+BSD `mtree` are used in the program.
 
 
 ### Typical form
@@ -70,6 +75,37 @@ avoids issues with encoding, as well as issues of information leaking. The
 designation of SHA1 is arbitrary and seen as a general "good enough" assertion
 of the value.
 
+### Tar form
+
+```mtree
+# .
+/set type=file mode=0664 uid=1000 gid=1000
+. type=dir mode=0775 tar_time=1468430408.000000000
+
+# samedir
+samedir type=dir mode=0775 tar_time=1468000972.000000000
+    file2 size=0 tar_time=1467999782.000000000
+    file1 size=0 tar_time=1467999781.000000000
+    
+[...]
+```
+
+While `go-mtree` serves mainly as a library for upstream `mtree` support,
+`go-mtree` is also compatible with [tar archives][tar] (which is not an upstream feature).
+This means that we can now create and validate a manifest by specifying a tar file.
+More interestingly, this also means that we can create a manifest from an archive, and then
+validate this manifest against a filesystem hierarchy that's on disk, and vice versa.
+
+Notice that for the output of creating a validation manifest from a tar file, the default behavior
+for evaluating a notion of time is to use the `tar_time` keyword. In the 
+"filesystem hierarchy" format of mtree, `time` is being evaluated with 
+nanosecond precision. However, GNU tar truncates a file's modification time
+to 1-second precision. That is, if a file's full modification time is 
+123456789.123456789, the "tar time" equivalent would be 123456789.000000000.
+This way, if you validate a manifest created using a tar file against an
+actual root directory, there will be no complaints from `go-mtree` so long as the
+1-second precision time of a file in the root directory is the same.
+
 
 ## Usage
 
@@ -83,13 +119,25 @@ To use the command line tool, first [build it](#Building), then the following.
 This will also include the sha512 digest of the files.
 
 ```bash
-gomtree -c -K sha512digest -p . > /tmp/mtree.txt
+gomtree -c -K sha512digest -p . > /tmp/root.mtree
+```
+
+With a tar file: 
+
+```bash
+gomtree -c -K sha512digest -T sometarfile.tar > /tmp/tar.mtree
 ```
 
 ### Validate a manifest
 
 ```bash
-gomtree -p . -f /tmp/mtree.txt
+gomtree -p . -f /tmp/root.mtree
+```
+
+With a tar file:
+
+```bash
+gomtree -T sometarfile.tar -f /tmp/root.mtree
 ```
 
 ### See the supported keywords
@@ -97,30 +145,32 @@ gomtree -p . -f /tmp/mtree.txt
 ```bash
 gomtree -list-keywords
 Available keywords:
-  rmd160
-  ripemd160digest
-  type  (default)
-  link  (default)
-  cksum
-  md5
-  md5digest
-  sha256digest
-  sha512
-  time  (default)
-  gid  (default)
-  mode  (default)
-  sha1
-  sha1digest
-  size  (default)
-  uid  (default)
-  sha256
-  sha384
-  sha512digest
-  nlink  (default)
-  uname
-  rmd160digest
-  sha384digest
-  xattr
+ uname
+ sha1
+ sha1digest
+ sha256digest
+ xattrs (not upstream)
+ link (default)
+ nlink (default)
+ md5digest
+ rmd160digest
+ mode (default)
+ cksum
+ md5
+ rmd160
+ type (default)
+ time (default)
+ uid (default)
+ gid (default)
+ sha256
+ sha384
+ sha512
+ xattr (not upstream)
+ tar_time (not upstream)
+ size (default)
+ ripemd160digest
+ sha384digest
+ sha512digest
 ```
 
 
@@ -146,3 +196,4 @@ go build .
 [archiecobbs/mtree-port]: https://github.com/archiecobbs/mtree-port
 [godoc]: https://godoc.org/github.com/vbatts/go-mtree
 [sha1]: https://tools.ietf.org/html/rfc3174
+[tar]: http://man7.org/linux/man-pages/man1/tar.1.html
