@@ -2,7 +2,7 @@ package mtree
 
 import (
 	"archive/tar"
-	"crypto/sha1"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"os"
@@ -55,7 +55,7 @@ var (
 			}
 			klist := []string{}
 			for k, v := range hdr.Xattrs {
-				klist = append(klist, fmt.Sprintf("xattr.%s=%x", k, sha1.Sum([]byte(v))))
+				klist = append(klist, fmt.Sprintf("xattr.%s=%s", k, base64.StdEncoding.EncodeToString([]byte(v))))
 			}
 			return strings.Join(klist, " "), nil
 		}
@@ -70,7 +70,7 @@ var (
 			if err != nil {
 				return "", err
 			}
-			klist[i] = fmt.Sprintf("xattr.%s=%x", xlist[i], sha1.Sum(data))
+			klist[i] = fmt.Sprintf("xattr.%s=%s", xlist[i], base64.StdEncoding.EncodeToString(data))
 		}
 		return strings.Join(klist, " "), nil
 	}
