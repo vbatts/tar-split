@@ -15,17 +15,17 @@ import (
 )
 
 var (
-	flCreate       = flag.Bool("c", false, "create a directory hierarchy spec")
-	flFile         = flag.String("f", "", "directory hierarchy spec to validate")
-	flPath         = flag.String("p", "", "root path that the hierarchy spec is relative to")
-	flAddKeywords  = flag.String("K", "", "Add the specified (delimited by comma or space) keywords to the current set of keywords")
-	flUseKeywords  = flag.String("k", "", "Use the specified (delimited by comma or space) keywords as the current set of keywords")
-	flListKeywords = flag.Bool("list-keywords", false, "List the keywords available")
-	flResultFormat = flag.String("result-format", "bsd", "output the validation results using the given format (bsd, json, path)")
-	flTar          = flag.String("T", "", "use tar archive to create or validate a directory hierarchy spec")
-	flBsdKeywords  = flag.Bool("bsd-keywords", false, "only operate on keywords that are supported by upstream mtree(8)")
-
-	flDebug = flag.Bool("debug", false, "output debug info to STDERR")
+	flCreate           = flag.Bool("c", false, "create a directory hierarchy spec")
+	flFile             = flag.String("f", "", "directory hierarchy spec to validate")
+	flPath             = flag.String("p", "", "root path that the hierarchy spec is relative to")
+	flAddKeywords      = flag.String("K", "", "Add the specified (delimited by comma or space) keywords to the current set of keywords")
+	flUseKeywords      = flag.String("k", "", "Use the specified (delimited by comma or space) keywords as the current set of keywords")
+	flListKeywords     = flag.Bool("list-keywords", false, "List the keywords available")
+	flResultFormat     = flag.String("result-format", "bsd", "output the validation results using the given format (bsd, json, path)")
+	flTar              = flag.String("T", "", "use tar archive to create or validate a directory hierarchy spec")
+	flBsdKeywords      = flag.Bool("bsd-keywords", false, "only operate on keywords that are supported by upstream mtree(8)")
+	flListUsedKeywords = flag.Bool("list-used", false, "list all the keywords found in a validation manifest")
+	flDebug            = flag.Bool("debug", false, "output debug info to STDERR")
 )
 
 var formats = map[string]func(*mtree.Result) string{
@@ -154,6 +154,25 @@ func main() {
 			isErr = true
 			return
 		}
+	}
+
+	// -list-used
+	if *flListUsedKeywords {
+		if *flFile == "" {
+			log.Println("no specification provided. please provide a validation manifest")
+			defer os.Exit(1)
+			isErr = true
+			return
+		}
+		fmt.Printf("Keywords used in [%s]:\n", *flFile)
+		for _, kw := range mtree.CollectUsedKeywords(dh) {
+			fmt.Printf(" %s", kw)
+			if _, ok := mtree.KeywordFuncs[kw]; !ok {
+				fmt.Print(" (unsupported)")
+			}
+			fmt.Printf("\n")
+		}
+		return
 	}
 
 	// -p <path>
