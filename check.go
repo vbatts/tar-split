@@ -42,7 +42,6 @@ func Check(root string, dh *DirectoryHierarchy, keywords []string) (*Result, err
 		return nil, err
 	}
 	sort.Sort(byPos(creator.DH.Entries))
-
 	var result Result
 	for i, e := range creator.DH.Entries {
 		switch e.Type {
@@ -117,6 +116,9 @@ func TarCheck(tarDH, dh *DirectoryHierarchy, keywords []string) (*Result, error)
 			tarRoot = &e
 			break
 		}
+	}
+	if tarRoot == nil {
+		return nil, fmt.Errorf("root of archive could not be found")
 	}
 	tarRoot.Next = &Entry{
 		Name: "seen",

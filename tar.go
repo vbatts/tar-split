@@ -49,18 +49,15 @@ type tarStream struct {
 func (ts *tarStream) readHeaders() {
 	// We have to start with the directory we're in, and anything beyond these
 	// items is determined at the time a tar is extracted.
-	rootComment := Entry{
-		Raw:  "# .",
-		Type: CommentType,
-	}
 	ts.root = &Entry{
 		Name: ".",
 		Type: RelativeType,
-		Prev: &rootComment,
-		Set: &Entry{
-			Name: "meta-set",
-			Type: SpecialType,
+		Prev: &Entry{
+			Raw:  "# .",
+			Type: CommentType,
 		},
+		Set:      nil,
+		Keywords: []string{"type=dir"},
 	}
 	metadataEntries := signatureEntries("<user specified tar archive>")
 	for _, e := range metadataEntries {
@@ -163,11 +160,7 @@ func (ts *tarStream) readHeaders() {
 					}
 				}
 			}
-			if filepath.Dir(filepath.Clean(hdr.Name)) == "." {
-				ts.root.Set = &s
-			} else {
-				e.Set = &s
-			}
+			e.Set = &s
 		}
 		err = populateTree(ts.root, &e, hdr)
 		if err != nil {
@@ -178,15 +171,6 @@ func (ts *tarStream) readHeaders() {
 	}
 }
 
-type relationship int
-
-const (
-	unknownDir relationship = iota
-	sameDir
-	childDir
-	parentDir
-)
-
 // populateTree creates a pseudo file tree hierarchy using an Entry's Parent and
 // Children fields. When examining the Entry e to insert in the tree, we
 // determine if the path to that Entry exists yet. If it does, insert it in the
@@ -196,35 +180,50 @@ const (
 //    e: the Entry we are looking to insert
 //  hdr: the tar header struct associated with e
 func populateTree(root, e *Entry, hdr *tar.Header) error {
+	if root == nil || e == nil {
+		return fmt.Errorf("cannot populate or insert nil Entry's")
+	} else if root.Prev == nil {
+		return fmt.Errorf("root needs to be an Entry associated with a directory")
+	}
 	isDir := hdr.FileInfo().IsDir()
 	wd := filepath.Clean(hdr.Name)
 	if !isDir {
-		// If entry is a file, we only want the directory it's in.
+		// directory up until the actual file
 		wd = filepath.Dir(wd)
-	}
-	if filepath.Dir(wd) == "." {
-		if isDir {
-			root.Keywords = e.Keywords
-		} else {
+		if wd == "." {
+			// If file in root directory, no need to traverse down, just append
 			root.Children = append([]*Entry{e}, root.Children...)
 			e.Parent = root
+			return nil
 		}
-		return nil
 	}
 	// TODO: what about directory/file names with "/" in it?
 	dirNames := strings.Split(wd, "/")
 	parent := root
-	for _, name := range dirNames[1:] {
+	for _, name := range dirNames[:] {
 		encoded, err := Vis(name)
 		if err != nil {
 			return err
 		}
 		if node := parent.Descend(encoded); node == nil {
-			// Entry for directory doesn't exist in tree relative to root
+			// Entry for directory doesn't exist in tree relative to root.
+			// We don't know if this directory is an actual tar header (because a
+			// user could have just specified a path to a deep file), so we must
+			// specify this placeholder directory as a "type=dir", and Set=nil.
 			newEntry := Entry{
-				Name:   encoded,
-				Type:   RelativeType,
-				Parent: parent,
+				Name:     encoded,
+				Type:     RelativeType,
+				Parent:   parent,
+				Keywords: []string{"type=dir"}, // temp data
+				Set:      nil,                  // temp data
+			}
+			pathname, err := newEntry.Path()
+			if err != nil {
+				return err
+			}
+			newEntry.Prev = &Entry{
+				Type: CommentType,
+				Raw:  "# " + pathname,
 			}
 			parent.Children = append(parent.Children, &newEntry)
 			parent = &newEntry
@@ -237,32 +236,20 @@ func populateTree(root, e *Entry, hdr *tar.Header) error {
 		parent.Children = append([]*Entry{e}, parent.Children...)
 		e.Parent = parent
 	} else {
-		// the "placeholder" directory already exists in the Entry "parent",
-		// so now we have to replace it's underlying data with that from e,
-		// as well as set the Parent field. Note that we don't set parent = e
-		// because parent is already in the pseudo tree, we just need to
-		// complete it's data.
-		e.Parent = parent.Parent
-		*parent = *e
-		commentpath, err := parent.Path()
-		if err != nil {
-			return err
-		}
-		parent.Prev = &Entry{
-			Raw:  "# " + commentpath,
-			Type: CommentType,
-		}
+		// fill in the actual data from e
+		parent.Keywords = e.Keywords
+		parent.Set = e.Set
 	}
 	return nil
 }
 
 // After constructing a pseudo file hierarchy tree, we want to "flatten" this
 // tree by putting the Entries into a slice with appropriate positioning.
-// root: the "head" of the sub-tree to flatten
-// creator: a dhCreator that helps with the '/set' keyword
+//     root: the "head" of the sub-tree to flatten
+//  creator: a dhCreator that helps with the '/set' keyword
 // keywords: keywords specified by the user that should be evaluated
 func flatten(root *Entry, creator *dhCreator, keywords []string) {
-	if root == nil {
+	if root == nil || creator == nil {
 		return
 	}
 	if root.Prev != nil {
@@ -275,43 +262,54 @@ func flatten(root *Entry, creator *dhCreator, keywords []string) {
 		root.Prev.Pos = len(creator.DH.Entries)
 		creator.DH.Entries = append(creator.DH.Entries, *root.Prev)
 
-		// Check if we need a new set
-		if creator.curSet == nil {
-			creator.curSet = &Entry{
-				Type:     SpecialType,
-				Name:     "/set",
-				Keywords: keywordSelector(append(tarDefaultSetKeywords, root.Set.Keywords...), keywords),
-				Pos:      len(creator.DH.Entries),
-			}
-			creator.DH.Entries = append(creator.DH.Entries, *creator.curSet)
-		} else {
-			needNewSet := false
-			for _, k := range root.Set.Keywords {
-				if !inSlice(k, creator.curSet.Keywords) {
-					needNewSet = true
-					break
-				}
-			}
-			if needNewSet {
+		if root.Set != nil {
+			// Check if we need a new set
+			if creator.curSet == nil {
 				creator.curSet = &Entry{
-					Name:     "/set",
 					Type:     SpecialType,
-					Pos:      len(creator.DH.Entries),
+					Name:     "/set",
 					Keywords: keywordSelector(append(tarDefaultSetKeywords, root.Set.Keywords...), keywords),
+					Pos:      len(creator.DH.Entries),
 				}
 				creator.DH.Entries = append(creator.DH.Entries, *creator.curSet)
+			} else {
+				needNewSet := false
+				for _, k := range root.Set.Keywords {
+					if !inSlice(k, creator.curSet.Keywords) {
+						needNewSet = true
+						break
+					}
+				}
+				if needNewSet {
+					creator.curSet = &Entry{
+						Name:     "/set",
+						Type:     SpecialType,
+						Pos:      len(creator.DH.Entries),
+						Keywords: keywordSelector(append(tarDefaultSetKeywords, root.Set.Keywords...), keywords),
+					}
+					creator.DH.Entries = append(creator.DH.Entries, *creator.curSet)
+				}
 			}
+		} else if creator.curSet != nil {
+			// Getting into here implies that the Entry's set has not and
+			// was not supposed to be evaluated, thus, we need to reset curSet
+			creator.DH.Entries = append(creator.DH.Entries, Entry{
+				Name: "/unset",
+				Type: SpecialType,
+				Pos:  len(creator.DH.Entries),
+			})
+			creator.curSet = nil
 		}
 	}
 	root.Set = creator.curSet
-	root.Keywords = setDifference(root.Keywords, creator.curSet.Keywords)
+	if creator.curSet != nil {
+		root.Keywords = setDifference(root.Keywords, creator.curSet.Keywords)
+	}
 	root.Pos = len(creator.DH.Entries)
 	creator.DH.Entries = append(creator.DH.Entries, *root)
-
 	for _, c := range root.Children {
 		flatten(c, creator, keywords)
 	}
-
 	if root.Prev != nil {
 		// Show a comment when stepping out
 		root.Prev.Pos = len(creator.DH.Entries)
@@ -329,23 +327,24 @@ func flatten(root *Entry, creator *dhCreator, keywords []string) {
 // filter takes in a pointer to an Entry, and returns a slice of Entry's that
 // satisfy the predicate p
 func filter(root *Entry, p func(*Entry) bool) []Entry {
-	var validEntrys []Entry
-	if len(root.Children) > 0 || root.Prev != nil {
-		for _, c := range root.Children {
-			// if an Entry is a directory, filter the directory
-			if c.Prev != nil {
-				validEntrys = append(validEntrys, filter(c, p)...)
-			}
-			if p(c) {
-				if c.Prev == nil {
-					// prepend files
-					validEntrys = append([]Entry{*c}, validEntrys...)
-				} else {
-					validEntrys = append(validEntrys, *c)
+	if root != nil {
+		var validEntrys []Entry
+		if len(root.Children) > 0 || root.Prev != nil {
+			for _, c := range root.Children {
+				// filter the sub-directory
+				if c.Prev != nil {
+					validEntrys = append(validEntrys, filter(c, p)...)
+				}
+				if p(c) {
+					if c.Prev == nil {
+						validEntrys = append([]Entry{*c}, validEntrys...)
+					} else {
+						validEntrys = append(validEntrys, *c)
+					}
 				}
 			}
+			return validEntrys
 		}
-		return validEntrys
 	}
 	return nil
 }
@@ -362,6 +361,15 @@ func setDifference(this, that []string) []string {
 	}
 	return diff
 }
+
+type relationship int
+
+const (
+	unknownDir relationship = iota
+	sameDir
+	childDir
+	parentDir
+)
 
 func compareDir(curDir, prevDir string) relationship {
 	curDir = filepath.Clean(curDir)
@@ -390,12 +398,14 @@ func (ts *tarStream) Close() error {
 	return ts.pipeReader.Close()
 }
 
+// Hierarchy returns the DirectoryHierarchy of the archive. It flattens the
+// Entry tree before returning the DirectoryHierarchy
 func (ts *tarStream) Hierarchy() (*DirectoryHierarchy, error) {
 	if ts.err != nil && ts.err != io.EOF {
 		return nil, ts.err
 	}
 	if ts.root == nil {
-		return nil, fmt.Errorf("root Entry not found. Nothing to flatten")
+		return nil, fmt.Errorf("root Entry not found, nothing to flatten")
 	}
 	flatten(ts.root, &ts.creator, ts.keywords)
 	return ts.creator.DH, nil
