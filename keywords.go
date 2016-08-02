@@ -255,6 +255,11 @@ var (
 		return fmt.Sprintf("mode=%#o", permissions), nil
 	}
 	sizeKeywordFunc = func(path string, info os.FileInfo, r io.Reader) (string, error) {
+		if sys, ok := info.Sys().(*tar.Header); ok {
+			if sys.Typeflag == tar.TypeSymlink {
+				return fmt.Sprintf("size=%d", len(sys.Linkname)), nil
+			}
+		}
 		return fmt.Sprintf("size=%d", info.Size()), nil
 	}
 	cksumKeywordFunc = func(path string, info os.FileInfo, r io.Reader) (string, error) {
