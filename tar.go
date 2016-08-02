@@ -2,6 +2,7 @@ package mtree
 
 import (
 	"archive/tar"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -29,11 +30,13 @@ func NewTarStreamer(r io.Reader, keywords []string) Streamer {
 		tarReader:  tar.NewReader(pR),
 		keywords:   keywords,
 	}
-	go ts.readHeaders() // I don't like this
+
+	go ts.readHeaders()
 	return ts
 }
 
 type tarStream struct {
+	root       *Entry
 	creator    dhCreator
 	pipeReader *io.PipeReader
 	pipeWriter *io.PipeWriter
@@ -50,7 +53,7 @@ func (ts *tarStream) readHeaders() {
 		Raw:  "# .",
 		Type: CommentType,
 	}
-	root := Entry{
+	ts.root = &Entry{
 		Name: ".",
 		Type: RelativeType,
 		Prev: &rootComment,
@@ -67,7 +70,6 @@ func (ts *tarStream) readHeaders() {
 	for {
 		hdr, err := ts.tarReader.Next()
 		if err != nil {
-			flatten(&root, &ts.creator, ts.keywords)
 			ts.pipeReader.CloseWithError(err)
 			return
 		}
@@ -162,12 +164,12 @@ func (ts *tarStream) readHeaders() {
 				}
 			}
 			if filepath.Dir(filepath.Clean(hdr.Name)) == "." {
-				root.Set = &s
+				ts.root.Set = &s
 			} else {
 				e.Set = &s
 			}
 		}
-		err = populateTree(&root, &e, hdr)
+		err = populateTree(ts.root, &e, hdr)
 		if err != nil {
 			ts.setErr(err)
 		}
@@ -209,6 +211,7 @@ func populateTree(root, e *Entry, hdr *tar.Header) error {
 		}
 		return nil
 	}
+	// TODO: what about directory/file names with "/" in it?
 	dirNames := strings.Split(wd, "/")
 	parent := root
 	for _, name := range dirNames[1:] {
@@ -259,6 +262,9 @@ func populateTree(root, e *Entry, hdr *tar.Header) error {
 // creator: a dhCreator that helps with the '/set' keyword
 // keywords: keywords specified by the user that should be evaluated
 func flatten(root *Entry, creator *dhCreator, keywords []string) {
+	if root == nil {
+		return
+	}
 	if root.Prev != nil {
 		// root.Prev != nil implies root is a directory
 		creator.DH.Entries = append(creator.DH.Entries,
@@ -317,6 +323,7 @@ func flatten(root *Entry, creator *dhCreator, keywords []string) {
 		}
 		creator.DH.Entries = append(creator.DH.Entries, dotEntry)
 	}
+	return
 }
 
 // filter takes in a pointer to an Entry, and returns a slice of Entry's that
@@ -387,5 +394,9 @@ func (ts *tarStream) Hierarchy() (*DirectoryHierarchy, error) {
 	if ts.err != nil && ts.err != io.EOF {
 		return nil, ts.err
 	}
+	if ts.root == nil {
+		return nil, fmt.Errorf("root Entry not found. Nothing to flatten")
+	}
+	flatten(ts.root, &ts.creator, ts.keywords)
 	return ts.creator.DH, nil
 }
