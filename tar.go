@@ -47,6 +47,20 @@ type tarStream struct {
 }
 
 func (ts *tarStream) readHeaders() {
+	// remove "time" keyword
+	notimekws := []string{}
+	for _, kw := range ts.keywords {
+		if !inSlice(kw, notimekws) {
+			if kw != "time" {
+				notimekws = append(notimekws, kw)
+			} else {
+				if !inSlice("tar_time", ts.keywords) {
+					notimekws = append(notimekws, "tar_time")
+				}
+			}
+		}
+	}
+	ts.keywords = notimekws
 	// We have to start with the directory we're in, and anything beyond these
 	// items is determined at the time a tar is extracted.
 	ts.root = &Entry{
@@ -106,9 +120,6 @@ func (ts *tarStream) readHeaders() {
 
 		// now collect keywords on the file
 		for _, keyword := range ts.keywords {
-			if keyword == "time" {
-				keyword = "tar_time"
-			}
 			if keyFunc, ok := KeywordFuncs[keyword]; ok {
 				// We can't extract directories on to disk, so "size" keyword
 				// is irrelevant for now
@@ -142,9 +153,6 @@ func (ts *tarStream) readHeaders() {
 				Type: SpecialType,
 			}
 			for _, setKW := range SetKeywords {
-				if setKW == "time" {
-					setKW = "tar_time"
-				}
 				if keyFunc, ok := KeywordFuncs[setKW]; ok {
 					val, err := keyFunc(hdr.Name, hdr.FileInfo(), tmpFile)
 					if err != nil {
