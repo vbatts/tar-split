@@ -51,12 +51,12 @@ func (ts *tarStream) readHeaders() {
 	notimekws := []string{}
 	for _, kw := range ts.keywords {
 		if !inSlice(kw, notimekws) {
-			if kw != "time" {
-				notimekws = append(notimekws, kw)
-			} else {
+			if kw == "time" {
 				if !inSlice("tar_time", ts.keywords) {
 					notimekws = append(notimekws, "tar_time")
 				}
+			} else {
+				notimekws = append(notimekws, kw)
 			}
 		}
 	}
