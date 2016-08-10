@@ -67,7 +67,6 @@ func Check(root string, dh *DirectoryHierarchy, keywords []string) (*Result, err
 			} else {
 				kvs = NewKeyVals(e.Keywords)
 			}
-
 			for _, kv := range kvs {
 				kw := kv.Keyword()
 				// 'tar_time' keyword evaluation wins against 'time' keyword evaluation

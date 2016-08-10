@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -29,6 +30,7 @@ func NewTarStreamer(r io.Reader, keywords []string) Streamer {
 		teeReader:  io.TeeReader(r, pW),
 		tarReader:  tar.NewReader(pR),
 		keywords:   keywords,
+		hardlinks:  map[string][]string{},
 	}
 
 	go ts.readHeaders()
@@ -37,6 +39,7 @@ func NewTarStreamer(r io.Reader, keywords []string) Streamer {
 
 type tarStream struct {
 	root       *Entry
+	hardlinks  map[string][]string
 	creator    dhCreator
 	pipeReader *io.PipeReader
 	pipeWriter *io.PipeWriter
@@ -116,6 +119,22 @@ func (ts *tarStream) readHeaders() {
 		e := Entry{
 			Name: encodedName,
 			Type: RelativeType,
+		}
+
+		// Keep track of which files are hardlinks so we can resolve them later
+		if hdr.Typeflag == tar.TypeLink {
+			linkFunc := KeywordFuncs["link"]
+			kv, err := linkFunc(hdr.Name, hdr.FileInfo(), nil)
+			if err != nil {
+				log.Println(err)
+				break
+			}
+			linkname := KeyVal(kv).Value()
+			if _, ok := ts.hardlinks[linkname]; !ok {
+				ts.hardlinks[linkname] = []string{hdr.Name}
+			} else {
+				ts.hardlinks[linkname] = append(ts.hardlinks[linkname], hdr.Name)
+			}
 		}
 
 		// now collect keywords on the file
@@ -332,6 +351,39 @@ func flatten(root *Entry, creator *dhCreator, keywords []string) {
 	return
 }
 
+// resolveHardlinks goes through an Entry tree, and finds the Entry's associated
+// with hardlinks and fills them in with the actual data from the base file.
+func resolveHardlinks(root *Entry, hardlinks map[string][]string, countlinks bool) {
+	originals := make(map[string]*Entry)
+	for base, links := range hardlinks {
+		var basefile *Entry
+		if seen, ok := originals[base]; !ok {
+			basefile = root.Find(base)
+			if basefile == nil {
+				log.Printf("%s does not exist in this tree\n", base)
+				continue
+			}
+			originals[base] = basefile
+		} else {
+			basefile = seen
+		}
+		for _, link := range links {
+			linkfile := root.Find(link)
+			if linkfile == nil {
+				log.Printf("%s does not exist in this tree\n", link)
+				continue
+			}
+			linkfile.Keywords = basefile.Keywords
+			if countlinks {
+				linkfile.Keywords = append(linkfile.Keywords, fmt.Sprintf("nlink=%d", len(links)+1))
+			}
+		}
+		if countlinks {
+			basefile.Keywords = append(basefile.Keywords, fmt.Sprintf("nlink=%d", len(links)+1))
+		}
+	}
+}
+
 // filter takes in a pointer to an Entry, and returns a slice of Entry's that
 // satisfy the predicate p
 func filter(root *Entry, p func(*Entry) bool) []Entry {
@@ -415,6 +467,7 @@ func (ts *tarStream) Hierarchy() (*DirectoryHierarchy, error) {
 	if ts.root == nil {
 		return nil, fmt.Errorf("root Entry not found, nothing to flatten")
 	}
+	resolveHardlinks(ts.root, ts.hardlinks, inSlice("nlink", ts.keywords))
 	flatten(ts.root, &ts.creator, ts.keywords)
 	return ts.creator.DH, nil
 }

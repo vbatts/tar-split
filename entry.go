@@ -42,6 +42,23 @@ func (e Entry) Descend(filename string) *Entry {
 	return nil
 }
 
+// Find is a wrapper around Descend that takes in a whole string path and tries
+// to find that Entry
+func (e Entry) Find(filepath string) *Entry {
+	resultnode := &e
+	for _, path := range strings.Split(filepath, "/") {
+		encoded, err := Vis(path)
+		if err != nil {
+			return nil
+		}
+		resultnode = resultnode.Descend(encoded)
+		if resultnode == nil {
+			return nil
+		}
+	}
+	return resultnode
+}
+
 // Ascend gets the parent of an Entry. Serves mainly to maintain readability
 // when traversing up and down an Entry tree
 func (e Entry) Ascend() *Entry {
