@@ -142,6 +142,184 @@ func TestTar(t *testing.T) {
 	}
 }
 
+// This test checks how gomtree handles archives that were created
+// with multiple directories, i.e, archives created with something like:
+// `tar -cvf some.tar dir1 dir2 dir3 dir4/dir5 dir6` ... etc.
+// The testdata of collection.tar resemble such an archive. the `collection` folder
+// is the contents of `collection.tar` extracted
+func TestArchiveCreation(t *testing.T) {
+	fh, err := os.Open("./testdata/collection.tar")
+	if err != nil {
+		t.Fatal(err)
+	}
+	str := NewTarStreamer(fh, []string{"sha1"})
+
+	if _, err := io.Copy(ioutil.Discard, str); err != nil && err != io.EOF {
+		t.Fatal(err)
+	}
+	if err := str.Close(); err != nil {
+		t.Fatal(err)
+	}
+	defer fh.Close()
+
+	// get DirectoryHierarcy struct from walking the tar archive
+	tdh, err := str.Hierarchy()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Test the tar manifest against the actual directory
+	res, err := Check("./testdata/collection", tdh, []string{"sha1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if res != nil {
+		for _, f := range res.Failures {
+			t.Errorf(f.String())
+		}
+		for _, e := range res.Extra {
+			t.Errorf("%s extra not expected", e.Name)
+		}
+		for _, m := range res.Missing {
+			t.Errorf("%s missing not expected", m.Name)
+		}
+	}
+
+	// Test the tar manifest against itself
+	res, err = TarCheck(tdh, tdh, []string{"sha1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res != nil {
+		for _, f := range res.Failures {
+			t.Errorf(f.String())
+		}
+		for _, e := range res.Extra {
+			t.Errorf("%s extra not expected", e.Name)
+		}
+		for _, m := range res.Missing {
+			t.Errorf("%s missing not expected", m.Name)
+		}
+	}
+
+	// Validate the directory manifest against the archive
+	dh, err := Walk("./testdata/collection", nil, []string{"sha1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err = TarCheck(tdh, dh, []string{"sha1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res != nil {
+		for _, f := range res.Failures {
+			t.Errorf(f.String())
+		}
+		for _, e := range res.Extra {
+			t.Errorf("%s extra not expected", e.Name)
+		}
+		for _, m := range res.Missing {
+			t.Errorf("%s missing not expected", m.Name)
+		}
+	}
+}
+
+// Now test a tar file that was created with just the path to a file. In this
+// test case, the traversal and creation of "placeholder" directories are
+// evaluated. Also, The fact that this archive contains a single entry, yet the
+// entry is associated with a file that has parent directories, means that the
+// "." directory should be the lowest sub-directory under which `file` is contained.
+func TestTreeTraversal(t *testing.T) {
+	fh, err := os.Open("./testdata/traversal.tar")
+	if err != nil {
+		t.Fatal(err)
+	}
+	str := NewTarStreamer(fh, DefaultTarKeywords)
+
+	if _, err = io.Copy(ioutil.Discard, str); err != nil && err != io.EOF {
+		t.Fatal(err)
+	}
+	if err = str.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	fh.Close()
+	tdh, err := str.Hierarchy()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := TarCheck(tdh, tdh, []string{"sha1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res != nil {
+		for _, f := range res.Failures {
+			t.Errorf(f.String())
+		}
+		for _, e := range res.Extra {
+			t.Errorf("%s extra not expected", e.Name)
+		}
+		for _, m := range res.Missing {
+			t.Errorf("%s missing not expected", m.Name)
+		}
+	}
+
+	// top-level "." directory will contain contents of traversal.tar
+	res, err = Check("./testdata/.", tdh, []string{"sha1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res != nil {
+		for _, f := range res.Failures {
+			t.Errorf(f.String())
+		}
+		for _, e := range res.Extra {
+			t.Errorf("%s extra not expected", e.Name)
+		}
+		for _, m := range res.Missing {
+			t.Errorf("%s missing not expected", m.Name)
+		}
+	}
+
+	// Now test an archive that requires placeholder directories, i.e, there are
+	// no headers in the archive that are associated with the actual directory name
+	fh, err = os.Open("./testdata/singlefile.tar")
+	if err != nil {
+		t.Fatal(err)
+	}
+	str = NewTarStreamer(fh, DefaultTarKeywords)
+	if _, err = io.Copy(ioutil.Discard, str); err != nil && err != io.EOF {
+		t.Fatal(err)
+	}
+	if err = str.Close(); err != nil {
+		t.Fatal(err)
+	}
+	tdh, err = str.Hierarchy()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Implied top-level "." directory will contain the contents of singlefile.tar
+	res, err = Check("./testdata/.", tdh, []string{"sha1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res != nil {
+		for _, f := range res.Failures {
+			t.Errorf(f.String())
+		}
+		for _, e := range res.Extra {
+			t.Errorf("%s extra not expected", e.Name)
+		}
+		for _, m := range res.Missing {
+			t.Errorf("%s missing not expected", m.Name)
+		}
+	}
+}
+
 // minimal tar archive stream that mimics what is in ./testdata/test.tar
 func makeTarStream() ([]byte, error) {
 	buf := new(bytes.Buffer)
