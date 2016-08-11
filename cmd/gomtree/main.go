@@ -164,13 +164,26 @@ func main() {
 			isErr = true
 			return
 		}
-		fmt.Printf("Keywords used in [%s]:\n", *flFile)
-		for _, kw := range mtree.CollectUsedKeywords(dh) {
-			fmt.Printf(" %s", kw)
-			if _, ok := mtree.KeywordFuncs[kw]; !ok {
-				fmt.Print(" (unsupported)")
+		usedKeywords := mtree.CollectUsedKeywords(dh)
+		if *flResultFormat == "json" {
+			// if they're asking for json, give it to them
+			data := map[string][]string{*flFile: usedKeywords}
+			buf, err := json.MarshalIndent(data, "", "  ")
+			if err != nil {
+				defer os.Exit(1)
+				isErr = true
+				return
 			}
-			fmt.Printf("\n")
+			fmt.Println(string(buf))
+		} else {
+			fmt.Printf("Keywords used in [%s]:\n", *flFile)
+			for _, kw := range usedKeywords {
+				fmt.Printf(" %s", kw)
+				if _, ok := mtree.KeywordFuncs[kw]; !ok {
+					fmt.Print(" (unsupported)")
+				}
+				fmt.Printf("\n")
+			}
 		}
 		return
 	}
