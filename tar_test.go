@@ -320,6 +320,44 @@ func TestTreeTraversal(t *testing.T) {
 	}
 }
 
+func TestHardlinks(t *testing.T) {
+	fh, err := os.Open("./testdata/hardlinks.tar")
+	if err != nil {
+		t.Fatal(err)
+	}
+	str := NewTarStreamer(fh, append(DefaultTarKeywords, "nlink"))
+
+	if _, err = io.Copy(ioutil.Discard, str); err != nil && err != io.EOF {
+		t.Fatal(err)
+	}
+	if err = str.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	fh.Close()
+	tdh, err := str.Hierarchy()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	foundnlink := false
+	for _, e := range tdh.Entries {
+		if e.Type == RelativeType {
+			for _, kv := range e.Keywords {
+				if KeyVal(kv).Keyword() == "nlink" {
+					foundnlink = true
+					if KeyVal(kv).Value() != "3" {
+						t.Errorf("expected to have 3 hardlinks for %s", e.Name)
+					}
+				}
+			}
+		}
+	}
+	if !foundnlink {
+		t.Errorf("nlink expected to be evaluated")
+	}
+}
+
 // minimal tar archive stream that mimics what is in ./testdata/test.tar
 func makeTarStream() ([]byte, error) {
 	buf := new(bytes.Buffer)
