@@ -22,7 +22,7 @@ var (
 	flUseKeywords      = flag.String("k", "", "Use the specified (delimited by comma or space) keywords as the current set of keywords")
 	flListKeywords     = flag.Bool("list-keywords", false, "List the keywords available")
 	flResultFormat     = flag.String("result-format", "bsd", "output the validation results using the given format (bsd, json, path)")
-	flTar              = flag.String("T", "", "use tar archive to create or validate a directory hierarchy spec")
+	flTar              = flag.String("T", "", "use tar archive to create or validate a directory hierarchy spec (\"-\" indicates stdin)")
 	flBsdKeywords      = flag.Bool("bsd-keywords", false, "only operate on keywords that are supported by upstream mtree(8)")
 	flListUsedKeywords = flag.Bool("list-used", false, "list all the keywords found in a validation manifest")
 	flDebug            = flag.Bool("debug", false, "output debug info to STDERR")
@@ -184,13 +184,20 @@ func main() {
 	// -T <tar file>
 	var tdh *mtree.DirectoryHierarchy
 	if *flTar != "" {
-		fh, err := os.Open(*flTar)
-		if err != nil {
-			log.Println(err)
-			isErr = true
-			return
+		var input io.Reader
+		if *flTar == "-" {
+			input = os.Stdin
+		} else {
+			fh, err := os.Open(*flTar)
+			if err != nil {
+				log.Println(err)
+				isErr = true
+				return
+			}
+			defer fh.Close()
+			input = fh
 		}
-		ts := mtree.NewTarStreamer(fh, currentKeywords)
+		ts := mtree.NewTarStreamer(input, currentKeywords)
 
 		if _, err := io.Copy(ioutil.Discard, ts); err != nil && err != io.EOF {
 			log.Println(err)
@@ -202,7 +209,7 @@ func main() {
 			isErr = true
 			return
 		}
-		defer fh.Close()
+		var err error
 		tdh, err = ts.Hierarchy()
 		if err != nil {
 			log.Println(err)
