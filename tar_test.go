@@ -276,12 +276,6 @@ func TestTreeTraversal(t *testing.T) {
 		for _, f := range res.Failures {
 			t.Errorf(f.String())
 		}
-		for _, e := range res.Extra {
-			t.Errorf("%s extra not expected", e.Name)
-		}
-		for _, m := range res.Missing {
-			t.Errorf("%s missing not expected", m.Name)
-		}
 	}
 
 	// Now test an archive that requires placeholder directories, i.e, there are
@@ -310,12 +304,6 @@ func TestTreeTraversal(t *testing.T) {
 	if res != nil {
 		for _, f := range res.Failures {
 			t.Errorf(f.String())
-		}
-		for _, e := range res.Extra {
-			t.Errorf("%s extra not expected", e.Name)
-		}
-		for _, m := range res.Missing {
-			t.Errorf("%s missing not expected", m.Name)
 		}
 	}
 }
