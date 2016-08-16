@@ -26,6 +26,7 @@ var (
 	flBsdKeywords      = flag.Bool("bsd-keywords", false, "only operate on keywords that are supported by upstream mtree(8)")
 	flListUsedKeywords = flag.Bool("list-used", false, "list all the keywords found in a validation manifest")
 	flDebug            = flag.Bool("debug", false, "output debug info to STDERR")
+	flVersion          = flag.Bool("version", false, "display the version of this tool")
 )
 
 var formats = map[string]func(*mtree.Result) string{
@@ -71,6 +72,11 @@ func main() {
 			os.Exit(1)
 		}
 	}()
+
+	if *flVersion {
+		fmt.Printf("%s :: %s\n", os.Args[0], mtree.Version)
+		return
+	}
 
 	// -list-keywords
 	if *flListKeywords {
