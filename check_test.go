@@ -35,7 +35,7 @@ func TestCheckKeywords(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	//defer os.RemoveAll(dir) // clean up
+	defer os.RemoveAll(dir) // clean up
 
 	tmpfn := filepath.Join(dir, "tmpfile")
 	if err := ioutil.WriteFile(tmpfn, content, 0666); err != nil {
