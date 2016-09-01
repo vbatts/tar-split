@@ -59,6 +59,9 @@ var (
 			}
 			return strings.Join(klist, " "), nil
 		}
+		if !info.Mode().IsRegular() && !info.Mode().IsDir() {
+			return "", nil
+		}
 
 		xlist, err := xattr.List(path)
 		if err != nil {
