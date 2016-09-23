@@ -611,7 +611,8 @@ func (tr *Reader) readHeader() *Header {
 	if _, tr.err = io.ReadFull(tr.r, header); tr.err != nil {
 		// because it could read some of the block, but reach EOF first
 		if tr.err == io.EOF && tr.RawAccounting {
-			if _, tr.err = tr.rawBytes.Write(header); tr.err != nil {
+			if _, err := tr.rawBytes.Write(header); err != nil {
+				tr.err = err
 				return nil
 			}
 		}
