@@ -139,6 +139,8 @@ var testCases = []struct {
 	{"./testdata/longlink.tar.gz", "d9f6babe107b7247953dff6b5b5ae31a3a880add", 20480},
 	{"./testdata/fatlonglink.tar.gz", "8537f03f89aeef537382f8b0bb065d93e03b0be8", 26234880},
 	{"./testdata/iso-8859.tar.gz", "ddafa51cb03c74ec117ab366ee2240d13bba1ec3", 10240},
+	{"./testdata/extranils.tar.gz", "e187b4b3e739deaccc257342f4940f34403dc588", 10648},
+	{"./testdata/notenoughnils.tar.gz", "72f93f41efd95290baa5c174c234f5d4c22ce601", 512},
 }
 
 func TestTarStream(t *testing.T) {
