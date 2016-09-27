@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/codegangsta/cli"
+	"github.com/urfave/cli"
 	"github.com/vbatts/tar-split/version"
 )
 
