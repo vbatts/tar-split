@@ -6,7 +6,9 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"syscall"
 	"testing"
+	"time"
 )
 
 func ExampleStreamer() {
@@ -346,29 +348,39 @@ func TestHardlinks(t *testing.T) {
 	}
 }
 
-// minimal tar archive stream that mimics what is in ./testdata/test.tar
-func makeTarStream() ([]byte, error) {
+type fakeFile struct {
+	Name, Body string
+	Mode       int64
+	Type       byte
+	Sec, Nsec  int64
+	Xattrs     map[string]string
+}
+
+// minimal tar archive that mimics what is in ./testdata/test.tar
+var minimalFiles = []fakeFile{
+	{"x/", "", 0755, '5', 0, 0, nil},
+	{"x/files", "howdy\n", 0644, '0', 0, 0, nil},
+}
+
+func makeTarStream(ff []fakeFile) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	// Create a new tar archive.
 	tw := tar.NewWriter(buf)
 
 	// Add some files to the archive.
-	var files = []struct {
-		Name, Body string
-		Mode       int64
-		Type       byte
-		Xattrs     map[string]string
-	}{
-		{"x/", "", 0755, '5', nil},
-		{"x/files", "howdy\n", 0644, '0', nil},
-	}
-	for _, file := range files {
+	for _, file := range ff {
 		hdr := &tar.Header{
-			Name:   file.Name,
-			Mode:   file.Mode,
-			Size:   int64(len(file.Body)),
-			Xattrs: file.Xattrs,
+			Name:       file.Name,
+			Uid:        syscall.Getuid(),
+			Gid:        syscall.Getgid(),
+			Mode:       file.Mode,
+			Typeflag:   file.Type,
+			Size:       int64(len(file.Body)),
+			ModTime:    time.Unix(file.Sec, file.Nsec),
+			AccessTime: time.Unix(file.Sec, file.Nsec),
+			ChangeTime: time.Unix(file.Sec, file.Nsec),
+			Xattrs:     file.Xattrs,
 		}
 		if err := tw.WriteHeader(hdr); err != nil {
 			return nil, err

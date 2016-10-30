@@ -1,10 +1,14 @@
 package mtree
 
 import (
+	"archive/tar"
+	"bytes"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 // simple walk of current directory, and imediately check it.
@@ -335,4 +339,115 @@ func TestCompareKeys(t *testing.T) {
 	}
 }
 
-// TODO: Add test for Compare(...) between a tar and a regular dh (to make sure that tar_time is handled correctly).
+func TestTarCompare(t *testing.T) {
+	dir, err := ioutil.TempDir("", "test-compare-tar")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	// Create a bunch of objects.
+	tmpfile := filepath.Join(dir, "tmpfile")
+	if err := ioutil.WriteFile(tmpfile, []byte("some content"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	tmpdir := filepath.Join(dir, "testdir")
+	if err := os.Mkdir(tmpdir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	tmpsubfile := filepath.Join(tmpdir, "anotherfile")
+	if err := ioutil.WriteFile(tmpsubfile, []byte("aaa"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a tar-like archive.
+	compareFiles := []fakeFile{
+		{"./", "", 0700, tar.TypeDir, 100, 0, nil},
+		{"tmpfile", "some content", 0644, tar.TypeReg, 100, 0, nil},
+		{"testdir/", "", 0755, tar.TypeDir, 100, 0, nil},
+		{"testdir/anotherfile", "aaa", 0644, tar.TypeReg, 100, 0, nil},
+	}
+
+	for _, file := range compareFiles {
+		path := filepath.Join(dir, file.Name)
+
+		// Change the time to something known with nanosec != 0.
+		chtime := time.Unix(file.Sec, 987654321)
+		if err := os.Chtimes(path, chtime, chtime); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Walk the current state.
+	old, err := Walk(dir, nil, append(DefaultKeywords, "sha1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ts, err := makeTarStream(compareFiles)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	str := NewTarStreamer(bytes.NewBuffer(ts), append(DefaultTarKeywords, "sha1"))
+	if _, err = io.Copy(ioutil.Discard, str); err != nil && err != io.EOF {
+		t.Fatal(err)
+	}
+	if err = str.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	new, err := str.Hierarchy()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Compare.
+	diffs, err := Compare(old, new, append(DefaultTarKeywords, "sha1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// 0 objects
+	if len(diffs) != 0 {
+		actualFailure := false
+		for i, delta := range diffs {
+			// XXX: Tar generation is slightly broken, so we need to ignore some bugs.
+			if delta.Path() == "." && delta.Type() == Modified {
+				// FIXME: This is a known bug.
+				t.Logf("'.' is different in the tar -- this is a bug in the tar generation")
+
+				// The tar generation bug means that '.' is missing a bunch of keys.
+				allMissing := true
+				for _, keyDelta := range delta.Diff() {
+					if keyDelta.Type() != Missing {
+						allMissing = false
+					}
+				}
+				if !allMissing {
+					t.Errorf("'.' has changed in a way not consistent with known bugs")
+				}
+
+				continue
+			}
+
+			// XXX: Another bug.
+			keys := delta.Diff()
+			if len(keys) == 1 && keys[0].Name() == "size" && keys[0].Type() == Missing {
+				// FIXME: Also a known bug with tar generation dropping size=.
+				t.Logf("'%s' is missing a size= keyword -- a bug in tar generation", delta.Path())
+
+				continue
+			}
+
+			actualFailure = true
+			t.Logf("FAILURE: diff[%d] = %#v", i, delta)
+		}
+
+		if actualFailure {
+			t.Errorf("expected the diff length to be 0, got %d", len(diffs))
+		}
+	}
+}
