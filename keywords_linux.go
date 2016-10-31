@@ -14,6 +14,11 @@ import (
 )
 
 var (
+	// this is bsd specific https://www.freebsd.org/cgi/man.cgi?query=chflags&sektion=2
+	flagsKeywordFunc = func(path string, info os.FileInfo, r io.Reader) (string, error) {
+		return "", nil
+	}
+
 	unameKeywordFunc = func(path string, info os.FileInfo, r io.Reader) (string, error) {
 		if hdr, ok := info.Sys().(*tar.Header); ok {
 			return fmt.Sprintf("uname=%s", hdr.Uname), nil
