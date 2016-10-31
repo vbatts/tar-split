@@ -165,7 +165,7 @@ var (
 	BsdKeywords = []string{
 		"cksum",
 		"device",
-		"flags",
+		"flags", // this one is really mostly BSD specific ...
 		"ignore",
 		"gid",
 		"gname",
@@ -225,6 +225,8 @@ var (
 		"sha384digest":    hasherKeywordFunc("sha384digest", sha512.New384),    // A synonym for `sha384`
 		"sha512":          hasherKeywordFunc("sha512digest", sha512.New),       // The SHA512 message digest of the file
 		"sha512digest":    hasherKeywordFunc("sha512digest", sha512.New),       // A synonym for `sha512`
+
+		"flags": flagsKeywordFunc, // NOTE: this is a noop, but here to support the presence of the "flags" keyword.
 
 		// This is not an upstreamed keyword, but used to vary from "time", as tar
 		// archives do not store nanosecond precision. So comparing on "time" will
