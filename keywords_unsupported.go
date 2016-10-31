@@ -1,4 +1,4 @@
-// +build !linux
+// +build !linux,!darwin,!freebsd,!netbsd,!openbsd
 
 package mtree
 
