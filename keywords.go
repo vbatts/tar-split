@@ -287,14 +287,12 @@ var (
 		}
 	}
 	tartimeKeywordFunc = func(path string, info os.FileInfo, r io.Reader) (string, error) {
-		return fmt.Sprintf("tar_time=%d.000000000", info.ModTime().Unix()), nil
+		return fmt.Sprintf("tar_time=%d.%9.9d", info.ModTime().Unix(), 0), nil
 	}
 	timeKeywordFunc = func(path string, info os.FileInfo, r io.Reader) (string, error) {
-		t := info.ModTime().UnixNano()
-		if t == 0 {
-			return "time=0.000000000", nil
-		}
-		return fmt.Sprintf("time=%d.%9.9d", (t / 1e9), (t % (t / 1e9))), nil
+		tSec := info.ModTime().Unix()
+		tNano := info.ModTime().Nanosecond()
+		return fmt.Sprintf("time=%d.%9.9d", tSec, tNano), nil
 	}
 	linkKeywordFunc = func(path string, info os.FileInfo, r io.Reader) (string, error) {
 		if sys, ok := info.Sys().(*tar.Header); ok {
