@@ -29,33 +29,121 @@ var (
 	flVersion          = flag.Bool("version", false, "display the version of this tool")
 )
 
-var formats = map[string]func(*mtree.Result) string{
+var formats = map[string]func([]mtree.InodeDelta) string{
 	// Outputs the errors in the BSD format.
-	"bsd": func(r *mtree.Result) string {
+	"bsd": func(d []mtree.InodeDelta) string {
 		var buffer bytes.Buffer
-		for _, fail := range r.Failures {
-			fmt.Fprintln(&buffer, fail)
+		for _, delta := range d {
+			if delta.Type() == mtree.Modified {
+				fmt.Fprintln(&buffer, delta)
+			}
 		}
 		return buffer.String()
 	},
 
 	// Outputs the full result struct in JSON.
-	"json": func(r *mtree.Result) string {
+	"json": func(d []mtree.InodeDelta) string {
 		var buffer bytes.Buffer
-		if err := json.NewEncoder(&buffer).Encode(r); err != nil {
+		if err := json.NewEncoder(&buffer).Encode(d); err != nil {
 			panic(err)
 		}
 		return buffer.String()
 	},
 
 	// Outputs only the paths which failed to validate.
-	"path": func(r *mtree.Result) string {
+	"path": func(d []mtree.InodeDelta) string {
 		var buffer bytes.Buffer
-		for _, fail := range r.Failures {
-			fmt.Fprintln(&buffer, fail.Path)
+		for _, delta := range d {
+			if delta.Type() == mtree.Modified {
+				fmt.Fprintln(&buffer, delta.Path())
+			}
 		}
 		return buffer.String()
 	},
+}
+
+// isDirEntry returns wheter an mtree.Entry describes a directory.
+func isDirEntry(e mtree.Entry) bool {
+	for _, kw := range e.Keywords {
+		kv := mtree.KeyVal(kw)
+		if kv.Keyword() == "type" {
+			return kv.Value() == "dir"
+		}
+	}
+	// Shouldn't be reached.
+	return false
+}
+
+// filterMissingKeywords is a fairly annoying hack to get around the fact that
+// tar archive manifest generation has certain unsolveable problems regarding
+// certain keywords. For example, the size=... keyword cannot be implemented
+// for directories in a tar archive (which causes Missing errors for that
+// keyword).
+//
+// This function just removes all instances of Missing errors for keywords.
+// This makes certain assumptions about the type of issues tar archives have.
+// Only call this on tar archive manifest comparisons.
+func filterMissingKeywords(diffs []mtree.InodeDelta) []mtree.InodeDelta {
+	newDiffs := []mtree.InodeDelta{}
+loop:
+	for _, diff := range diffs {
+		if diff.Type() == mtree.Modified {
+			// We only apply this filtering to directories.
+			// NOTE: This will probably break if someone drops the size keyword.
+			if isDirEntry(*diff.Old()) || isDirEntry(*diff.New()) {
+				// If this applies to '.' then we just filter everything
+				// (meaning we remove this entry). This is because note all tar
+				// archives include a '.' entry. Which makes checking this not
+				// practical.
+				if diff.Path() == "." {
+					continue
+				}
+
+				// Only filter out the size keyword.
+				// NOTE: This currently takes advantage of the fact the
+				//       diff.Diff() returns the actual slice to diff.keys.
+				keys := diff.Diff()
+				for idx, k := range keys {
+					// Delete the key if it's "size". Unfortunately in Go you
+					// can't delete from a slice without reassigning it. So we
+					// just overwrite it with the last value.
+					if k.Name() == "size" {
+						if len(keys) < 2 {
+							continue loop
+						}
+						keys[idx] = keys[len(keys)-1]
+					}
+				}
+			}
+		}
+
+		// If we got here, append to the new set.
+		newDiffs = append(newDiffs, diff)
+	}
+	return newDiffs
+}
+
+// isTarSpec returns whether the spec provided came from the tar generator.
+// This takes advantage of an unsolveable problem in tar generation.
+func isTarSpec(spec *mtree.DirectoryHierarchy) bool {
+	// Find a directory and check whether it's missing size=...
+	// NOTE: This will definitely break if someone drops the size=... keyword.
+	for _, e := range spec.Entries {
+		if !isDirEntry(e) {
+			continue
+		}
+
+		for _, kw := range e.Keywords {
+			kv := mtree.KeyVal(kw)
+			if kv.Keyword() == "size" {
+				return false
+			}
+		}
+		return true
+	}
+
+	// Should never be reached.
+	return false
 }
 
 func main() {
@@ -66,6 +154,7 @@ func main() {
 	}
 
 	// so that defers cleanly exec
+	// TODO: Switch everything to being inside a function, to remove the need for isErr.
 	var isErr bool
 	defer func() {
 		if isErr {
@@ -104,9 +193,11 @@ func main() {
 	}
 
 	var (
+		err             error
 		tmpKeywords     []string
 		currentKeywords []string
 	)
+
 	// -k <keywords>
 	if *flUseKeywords != "" {
 		tmpKeywords = splitKeywordsArg(*flUseKeywords)
@@ -143,8 +234,23 @@ func main() {
 		currentKeywords = tmpKeywords
 	}
 
+	// Check mutual exclusivity of keywords.
+	// TODO(cyphar): Abstract this inside keywords.go.
+	if inSlice("tar_time", currentKeywords) && inSlice("time", currentKeywords) {
+		log.Printf("tar_time and time are mutually exclusive keywords")
+		isErr = true
+		return
+	}
+
+	// If we're doing a comparison, we always are comparing between a spec and
+	// state DH. If specDh is nil, we are generating a new one.
+	var (
+		specDh       *mtree.DirectoryHierarchy
+		stateDh      *mtree.DirectoryHierarchy
+		specKeywords []string
+	)
+
 	// -f <file>
-	var dh *mtree.DirectoryHierarchy
 	if *flFile != "" && !*flCreate {
 		// load the hierarchy, if we're not creating a new spec
 		fh, err := os.Open(*flFile)
@@ -153,27 +259,30 @@ func main() {
 			isErr = true
 			return
 		}
-		dh, err = mtree.ParseSpec(fh)
+		specDh, err = mtree.ParseSpec(fh)
 		fh.Close()
 		if err != nil {
 			log.Println(err)
 			isErr = true
 			return
 		}
+
+		// We can't check against more fields than in the specKeywords list, so
+		// currentKeywords can only have a subset of specKeywords.
+		specKeywords = mtree.CollectUsedKeywords(specDh)
 	}
 
 	// -list-used
 	if *flListUsedKeywords {
-		if *flFile == "" {
+		if specDh == nil {
 			log.Println("no specification provided. please provide a validation manifest")
-			defer os.Exit(1)
 			isErr = true
 			return
 		}
-		usedKeywords := mtree.CollectUsedKeywords(dh)
+
 		if *flResultFormat == "json" {
 			// if they're asking for json, give it to them
-			data := map[string][]string{*flFile: usedKeywords}
+			data := map[string][]string{*flFile: specKeywords}
 			buf, err := json.MarshalIndent(data, "", "  ")
 			if err != nil {
 				defer os.Exit(1)
@@ -183,7 +292,7 @@ func main() {
 			fmt.Println(string(buf))
 		} else {
 			fmt.Printf("Keywords used in [%s]:\n", *flFile)
-			for _, kw := range usedKeywords {
+			for _, kw := range specKeywords {
 				fmt.Printf(" %s", kw)
 				if _, ok := mtree.KeywordFuncs[kw]; !ok {
 					fmt.Print(" (unsupported)")
@@ -194,6 +303,36 @@ func main() {
 		return
 	}
 
+	if specKeywords != nil {
+		// If we didn't actually change the set of keywords, we can just use specKeywords.
+		if *flUseKeywords == "" && *flAddKeywords == "" {
+			currentKeywords = specKeywords
+		}
+
+		for _, keyword := range currentKeywords {
+			// As always, time is a special case.
+			// TODO: Fix that.
+			if (keyword == "time" && inSlice("tar_time", specKeywords)) || (keyword == "tar_time" && inSlice("time", specKeywords)) {
+				continue
+			}
+
+			if !inSlice(keyword, specKeywords) {
+				log.Printf("cannot verify keywords not in mtree specification: %s\n", keyword)
+				isErr = true
+			}
+			if isErr {
+				return
+			}
+		}
+	}
+
+	// -p and -T are mutually exclusive
+	if *flPath != "" && *flTar != "" {
+		log.Println("options -T and -p are mutually exclusive")
+		isErr = true
+		return
+	}
+
 	// -p <path>
 	var rootPath = "."
 	if *flPath != "" {
@@ -201,7 +340,6 @@ func main() {
 	}
 
 	// -T <tar file>
-	var tdh *mtree.DirectoryHierarchy
 	if *flTar != "" {
 		var input io.Reader
 		if *flTar == "-" {
@@ -229,7 +367,15 @@ func main() {
 			return
 		}
 		var err error
-		tdh, err = ts.Hierarchy()
+		stateDh, err = ts.Hierarchy()
+		if err != nil {
+			log.Println(err)
+			isErr = true
+			return
+		}
+	} else {
+		// with a root directory
+		stateDh, err = mtree.Walk(rootPath, nil, currentKeywords)
 		if err != nil {
 			log.Println(err)
 			isErr = true
@@ -239,36 +385,39 @@ func main() {
 
 	// -c
 	if *flCreate {
-		// create a directory hierarchy
-		// with a tar stream
-		if tdh != nil {
-			tdh.WriteTo(os.Stdout)
-		} else {
-			// with a root directory
-			dh, err := mtree.Walk(rootPath, nil, currentKeywords)
+		fh := os.Stdout
+		if *flFile != "" {
+			fh, err = os.Create(*flFile)
 			if err != nil {
 				log.Println(err)
 				isErr = true
 				return
 			}
-			dh.WriteTo(os.Stdout)
 		}
-	} else if tdh != nil || dh != nil {
-		var res *mtree.Result
-		var err error
-		// else this is a validation
-		if *flTar != "" {
-			res, err = mtree.TarCheck(tdh, dh, currentKeywords)
-		} else {
-			res, err = mtree.Check(rootPath, dh, currentKeywords)
-		}
+
+		// output stateDh
+		stateDh.WriteTo(fh)
+		return
+	}
+
+	// This is a validation.
+	if specDh != nil && stateDh != nil {
+		var res []mtree.InodeDelta
+
+		res, err = mtree.Compare(specDh, stateDh, currentKeywords)
 		if err != nil {
 			log.Println(err)
 			isErr = true
 			return
 		}
-		if res != nil && len(res.Failures) > 0 {
-			defer os.Exit(1)
+		if res != nil {
+			if isTarSpec(specDh) || *flTar != "" {
+				res = filterMissingKeywords(res)
+			}
+			if len(res) > 0 {
+				defer os.Exit(1)
+			}
+
 			out := formatFunc(res)
 			if _, err := os.Stdout.Write([]byte(out)); err != nil {
 				log.Println(err)
@@ -276,36 +425,9 @@ func main() {
 				return
 			}
 		}
-		if res != nil {
-			if len(res.Extra) > 0 {
-				defer os.Exit(1)
-				for _, extra := range res.Extra {
-					extrapath, err := extra.Path()
-					if err != nil {
-						log.Println(err)
-						isErr = true
-						return
-					}
-					fmt.Printf("%s extra\n", extrapath)
-				}
-			}
-			if len(res.Missing) > 0 {
-				defer os.Exit(1)
-				for _, missing := range res.Missing {
-					missingpath, err := missing.Path()
-					if err != nil {
-						log.Println(err)
-						isErr = true
-						return
-					}
-					fmt.Printf("%s missing\n", missingpath)
-				}
-			}
-		}
 	} else {
 		log.Println("neither validating or creating a manifest. Please provide additional arguments")
 		isErr = true
-		defer os.Exit(1)
 		return
 	}
 }

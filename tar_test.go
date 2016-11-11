@@ -6,7 +6,9 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"syscall"
 	"testing"
+	"time"
 )
 
 func ExampleStreamer() {
@@ -28,7 +30,7 @@ func ExampleStreamer() {
 	if err != nil {
 		// handle error ...
 	}
-	if len(res.Failures) > 0 {
+	if len(res) > 0 {
 		// handle validation issue ...
 	}
 }
@@ -102,43 +104,17 @@ func TestTar(t *testing.T) {
 	}
 
 	res, err := TarCheck(tdh, dh, append(DefaultKeywords, "sha1"))
-
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// print any failures, and then call t.Fatal once all failures/extra/missing
 	// are outputted
-	if res != nil {
-		errors := ""
-		switch {
-		case len(res.Failures) > 0:
-			for _, f := range res.Failures {
-				t.Errorf("%s\n", f)
-			}
-			errors += "Keyword validation errors\n"
-		case len(res.Missing) > 0:
-			for _, m := range res.Missing {
-				missingpath, err := m.Path()
-				if err != nil {
-					t.Fatal(err)
-				}
-				t.Errorf("Missing file: %s\n", missingpath)
-			}
-			errors += "Missing files not expected for this test\n"
-		case len(res.Extra) > 0:
-			for _, e := range res.Extra {
-				extrapath, err := e.Path()
-				if err != nil {
-					t.Fatal(err)
-				}
-				t.Errorf("Extra file: %s\n", extrapath)
-			}
-			errors += "Extra files not expected for this test\n"
+	if len(res) > 0 {
+		for _, delta := range res {
+			t.Error(delta)
 		}
-		if errors != "" {
-			t.Fatal(errors)
-		}
+		t.Fatal("unexpected errors")
 	}
 }
 
@@ -174,16 +150,11 @@ func TestArchiveCreation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if res != nil {
-		for _, f := range res.Failures {
-			t.Errorf(f.String())
+	if len(res) > 0 {
+		for _, delta := range res {
+			t.Error(delta)
 		}
-		for _, e := range res.Extra {
-			t.Errorf("%s extra not expected", e.Name)
-		}
-		for _, m := range res.Missing {
-			t.Errorf("%s missing not expected", m.Name)
-		}
+		t.Fatal("unexpected errors")
 	}
 
 	// Test the tar manifest against itself
@@ -191,16 +162,11 @@ func TestArchiveCreation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res != nil {
-		for _, f := range res.Failures {
-			t.Errorf(f.String())
+	if len(res) > 0 {
+		for _, delta := range res {
+			t.Error(delta)
 		}
-		for _, e := range res.Extra {
-			t.Errorf("%s extra not expected", e.Name)
-		}
-		for _, m := range res.Missing {
-			t.Errorf("%s missing not expected", m.Name)
-		}
+		t.Fatal("unexpected errors")
 	}
 
 	// Validate the directory manifest against the archive
@@ -212,16 +178,11 @@ func TestArchiveCreation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res != nil {
-		for _, f := range res.Failures {
-			t.Errorf(f.String())
+	if len(res) > 0 {
+		for _, delta := range res {
+			t.Error(delta)
 		}
-		for _, e := range res.Extra {
-			t.Errorf("%s extra not expected", e.Name)
-		}
-		for _, m := range res.Missing {
-			t.Errorf("%s missing not expected", m.Name)
-		}
+		t.Fatal("unexpected errors")
 	}
 }
 
@@ -255,16 +216,11 @@ func TestTreeTraversal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res != nil {
-		for _, f := range res.Failures {
-			t.Errorf(f.String())
+	if len(res) > 0 {
+		for _, delta := range res {
+			t.Error(delta)
 		}
-		for _, e := range res.Extra {
-			t.Errorf("%s extra not expected", e.Name)
-		}
-		for _, m := range res.Missing {
-			t.Errorf("%s missing not expected", m.Name)
-		}
+		t.Fatal("unexpected errors")
 	}
 
 	// top-level "." directory will contain contents of traversal.tar
@@ -272,9 +228,18 @@ func TestTreeTraversal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res != nil {
-		for _, f := range res.Failures {
-			t.Errorf(f.String())
+	if len(res) > 0 {
+		var failed bool
+		for _, delta := range res {
+			// We only care about missing or modified files.
+			// The original test was written using the old check code.
+			if delta.Type() != Extra {
+				failed = true
+				t.Error(delta)
+			}
+		}
+		if failed {
+			t.Fatal("unexpected errors")
 		}
 	}
 
@@ -301,9 +266,18 @@ func TestTreeTraversal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res != nil {
-		for _, f := range res.Failures {
-			t.Errorf(f.String())
+	if len(res) > 0 {
+		var failed bool
+		for _, delta := range res {
+			// We only care about missing or modified files.
+			// The original test was written using the old check code.
+			if delta.Type() != Extra {
+				failed = true
+				t.Error(delta)
+			}
+		}
+		if failed {
+			t.Fatal("unexpected errors")
 		}
 	}
 }
@@ -346,29 +320,39 @@ func TestHardlinks(t *testing.T) {
 	}
 }
 
-// minimal tar archive stream that mimics what is in ./testdata/test.tar
-func makeTarStream() ([]byte, error) {
+type fakeFile struct {
+	Name, Body string
+	Mode       int64
+	Type       byte
+	Sec, Nsec  int64
+	Xattrs     map[string]string
+}
+
+// minimal tar archive that mimics what is in ./testdata/test.tar
+var minimalFiles = []fakeFile{
+	{"x/", "", 0755, '5', 0, 0, nil},
+	{"x/files", "howdy\n", 0644, '0', 0, 0, nil},
+}
+
+func makeTarStream(ff []fakeFile) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	// Create a new tar archive.
 	tw := tar.NewWriter(buf)
 
 	// Add some files to the archive.
-	var files = []struct {
-		Name, Body string
-		Mode       int64
-		Type       byte
-		Xattrs     map[string]string
-	}{
-		{"x/", "", 0755, '5', nil},
-		{"x/files", "howdy\n", 0644, '0', nil},
-	}
-	for _, file := range files {
+	for _, file := range ff {
 		hdr := &tar.Header{
-			Name:   file.Name,
-			Mode:   file.Mode,
-			Size:   int64(len(file.Body)),
-			Xattrs: file.Xattrs,
+			Name:       file.Name,
+			Uid:        syscall.Getuid(),
+			Gid:        syscall.Getgid(),
+			Mode:       file.Mode,
+			Typeflag:   file.Type,
+			Size:       int64(len(file.Body)),
+			ModTime:    time.Unix(file.Sec, file.Nsec),
+			AccessTime: time.Unix(file.Sec, file.Nsec),
+			ChangeTime: time.Unix(file.Sec, file.Nsec),
+			Xattrs:     file.Xattrs,
 		}
 		if err := tw.WriteHeader(hdr); err != nil {
 			return nil, err

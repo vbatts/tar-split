@@ -22,7 +22,7 @@ func TestCheck(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(res.Failures) > 0 {
+	if len(res) > 0 {
 		t.Errorf("%#v", res)
 	}
 }
@@ -53,7 +53,7 @@ func TestCheckKeywords(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(res.Failures) > 0 {
+	if len(res) > 0 {
 		t.Errorf("%#v", res)
 	}
 
@@ -68,8 +68,11 @@ func TestCheckKeywords(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(res.Failures) == 0 {
-		t.Errorf("expected to fail on changed mtimes, but did not")
+	if len(res) != 1 {
+		t.Errorf("expected to get 1 delta on changed mtimes, but did not")
+	}
+	if res[0].Type() != Modified {
+		t.Errorf("expected to get modified delta on changed mtimes, but did not")
 	}
 
 	// Check again, but only sha1 and mode. This ought to pass.
@@ -77,7 +80,7 @@ func TestCheckKeywords(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(res.Failures) > 0 {
+	if len(res) > 0 {
 		t.Errorf("%#v", res)
 	}
 }
@@ -92,7 +95,7 @@ func ExampleCheck() {
 	if err != nil {
 		// handle error ...
 	}
-	if len(res.Failures) > 0 {
+	if len(res) > 0 {
 		// handle failed validity ...
 	}
 }
@@ -108,9 +111,9 @@ func TestDefaultBrokenLink(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res != nil && len(res.Failures) > 0 {
-		for _, f := range res.Failures {
-			t.Error(f)
+	if len(res) > 0 {
+		for _, delta := range res {
+			t.Error(delta)
 		}
 	}
 }
@@ -156,8 +159,8 @@ func TestTimeComparison(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if len(res.Failures) > 0 {
-		t.Fatal(res.Failures)
+	if len(res) > 0 {
+		t.Fatal(res)
 	}
 }
 
@@ -197,19 +200,21 @@ func TestTarTime(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	keywords := CollectUsedKeywords(dh)
+
 	// make sure "time" keyword works
-	_, err = Check(dir, dh, DefaultKeywords)
+	_, err = Check(dir, dh, keywords)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// make sure tar_time wins
-	res, err := Check(dir, dh, append(DefaultKeywords, "tar_time"))
+	res, err := Check(dir, dh, append(keywords, "tar_time"))
 	if err != nil {
 		t.Error(err)
 	}
-	if len(res.Failures) > 0 {
-		t.Fatal(res.Failures)
+	if len(res) > 0 {
+		t.Fatal(res)
 	}
 }
 
@@ -254,8 +259,8 @@ func TestIgnoreComments(t *testing.T) {
 		t.Error(err)
 	}
 
-	if len(res.Failures) > 0 {
-		t.Fatal(res.Failures)
+	if len(res) > 0 {
+		t.Fatal(res)
 	}
 
 	// now change the spec to a comment that looks like an actual Entry but has
@@ -274,8 +279,8 @@ func TestIgnoreComments(t *testing.T) {
 		t.Error(err)
 	}
 
-	if len(res.Failures) > 0 {
-		t.Fatal(res.Failures)
+	if len(res) > 0 {
+		t.Fatal(res)
 	}
 }
 
@@ -309,7 +314,7 @@ func TestCheckNeedsEncoding(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(res.Failures) > 0 {
-		t.Fatal(res.Failures)
+	if len(res) > 0 {
+		t.Fatal(res)
 	}
 }
