@@ -1,4 +1,4 @@
-// +build linux
+// +build !linux
 
 package xattr
 
@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestXattr(t *testing.T) {
+func TestXattrUnsupported(t *testing.T) {
 	fh, err := ioutil.TempFile(".", "xattr.")
 	if err != nil {
 		t.Fatal(err)
@@ -19,16 +19,20 @@ func TestXattr(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := []byte("1234")
-	if err := Set(fh.Name(), "user.testing", expected); err != nil {
+	// because xattrs are "not supported" on this platform, they're like a black
+	// box.
+	write := []byte("1234")
+	expected := []byte("")
+
+	if err := Set(fh.Name(), "user.testing", write); err != nil {
 		t.Fatal(fh.Name(), err)
 	}
 	l, err := List(fh.Name())
 	if err != nil {
 		t.Error(fh.Name(), err)
 	}
-	if !(len(l) > 0) {
-		t.Errorf("%q: expected a list of at least 1; got %d", fh.Name(), len(l))
+	if len(l) > 0 {
+		t.Errorf("%q: expected a list of at least 0; got %d", fh.Name(), len(l))
 	}
 	got, err := Get(fh.Name(), "user.testing")
 	if err != nil {
