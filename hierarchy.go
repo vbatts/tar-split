@@ -26,13 +26,9 @@ func (dh DirectoryHierarchy) WriteTo(w io.Writer) (n int64, err error) {
 	return sum, nil
 }
 
-// CollectUsedKeywords collects and returns all the keywords used in a
+// UsedKeywords collects and returns all the keywords used in a
 // a DirectoryHierarchy
-func CollectUsedKeywords(dh *DirectoryHierarchy) []string {
-	if dh == nil {
-		return nil
-	}
-
+func (dh DirectoryHierarchy) UsedKeywords() []string {
 	usedkeywords := []string{}
 	for _, e := range dh.Entries {
 		switch e.Type {

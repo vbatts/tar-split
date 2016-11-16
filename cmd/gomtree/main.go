@@ -142,7 +142,7 @@ func app() error {
 
 		// We can't check against more fields than in the specKeywords list, so
 		// currentKeywords can only have a subset of specKeywords.
-		specKeywords = mtree.CollectUsedKeywords(specDh)
+		specKeywords = specDh.UsedKeywords()
 	}
 
 	// -list-used

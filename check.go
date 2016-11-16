@@ -8,7 +8,7 @@ package mtree
 // keywords) and then doing a Compare(dh, newDh, keywords).
 func Check(root string, dh *DirectoryHierarchy, keywords []string) ([]InodeDelta, error) {
 	if keywords == nil {
-		keywords = CollectUsedKeywords(dh)
+		keywords = dh.UsedKeywords()
 	}
 
 	newDh, err := Walk(root, nil, keywords)
@@ -25,7 +25,7 @@ func Check(root string, dh *DirectoryHierarchy, keywords []string) ([]InodeDelta
 // equivalent to Compare(dh, tarDH, keywords).
 func TarCheck(tarDH, dh *DirectoryHierarchy, keywords []string) ([]InodeDelta, error) {
 	if keywords == nil {
-		keywords = CollectUsedKeywords(dh)
+		keywords = dh.UsedKeywords()
 	}
 	return Compare(dh, tarDH, keywords)
 }

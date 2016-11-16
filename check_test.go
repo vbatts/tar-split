@@ -200,7 +200,7 @@ func TestTarTime(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	keywords := CollectUsedKeywords(dh)
+	keywords := dh.UsedKeywords()
 
 	// make sure "time" keyword works
 	_, err = Check(dir, dh, keywords)
