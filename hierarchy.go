@@ -38,7 +38,7 @@ func (dh DirectoryHierarchy) UsedKeywords() []string {
 				for _, kv := range kvs {
 					kw := KeyVal(kv).Keyword()
 					if !inSlice(kw, usedkeywords) {
-						usedkeywords = append(usedkeywords, kw)
+						usedkeywords = append(usedkeywords, KeywordSynonym(kw))
 					}
 				}
 			}

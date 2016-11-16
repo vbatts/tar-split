@@ -396,7 +396,11 @@ func isTarSpec(spec *mtree.DirectoryHierarchy) bool {
 }
 
 func splitKeywordsArg(str string) []string {
-	return strings.Fields(strings.Replace(str, ",", " ", -1))
+	keywords := []string{}
+	for _, kw := range strings.Fields(strings.Replace(str, ",", " ", -1)) {
+		keywords = append(keywords, mtree.KeywordSynonym(kw))
+	}
+	return keywords
 }
 
 func inSlice(a string, list []string) bool {

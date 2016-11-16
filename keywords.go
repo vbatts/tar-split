@@ -251,6 +251,31 @@ var (
 	}
 )
 
+// KeywordSynonym returns the canonical name for keywords that have synonyms,
+// and just returns the name provided if there is no synonym. In this way it
+// ought to be safe to wrap any keyword name.
+func KeywordSynonym(name string) string {
+	switch name {
+	case "md5":
+		return "md5digest"
+	case "rmd160":
+		return "ripemd160digest"
+	case "rmd160digest":
+		return "ripemd160digest"
+	case "sha1":
+		return "sha1digest"
+	case "sha256":
+		return "sha256digest"
+	case "sha384":
+		return "sha384digest"
+	case "sha512":
+		return "sha512digest"
+	case "xattrs":
+		return "xattr"
+	}
+	return name
+}
+
 var (
 	modeKeywordFunc = func(path string, info os.FileInfo, r io.Reader) (string, error) {
 		permissions := info.Mode().Perm()
@@ -292,7 +317,7 @@ var (
 			if _, err := io.Copy(h, r); err != nil {
 				return "", err
 			}
-			return fmt.Sprintf("%s=%x", name, h.Sum(nil)), nil
+			return fmt.Sprintf("%s=%x", KeywordSynonym(name), h.Sum(nil)), nil
 		}
 	}
 	tartimeKeywordFunc = func(path string, info os.FileInfo, r io.Reader) (string, error) {

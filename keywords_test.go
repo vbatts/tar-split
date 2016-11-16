@@ -93,3 +93,33 @@ func TestKeywordsTimeTar(t *testing.T) {
 		}
 	}
 }
+
+func TestKeywordSynonym(t *testing.T) {
+	checklist := []struct {
+		give, expect string
+	}{
+		{give: "time", expect: "time"},
+		{give: "md5", expect: "md5digest"},
+		{give: "md5digest", expect: "md5digest"},
+		{give: "rmd160", expect: "ripemd160digest"},
+		{give: "rmd160digest", expect: "ripemd160digest"},
+		{give: "ripemd160digest", expect: "ripemd160digest"},
+		{give: "sha1", expect: "sha1digest"},
+		{give: "sha1digest", expect: "sha1digest"},
+		{give: "sha256", expect: "sha256digest"},
+		{give: "sha256digest", expect: "sha256digest"},
+		{give: "sha384", expect: "sha384digest"},
+		{give: "sha384digest", expect: "sha384digest"},
+		{give: "sha512", expect: "sha512digest"},
+		{give: "sha512digest", expect: "sha512digest"},
+		{give: "xattr", expect: "xattr"},
+		{give: "xattrs", expect: "xattr"},
+	}
+
+	for i, check := range checklist {
+		got := KeywordSynonym(check.give)
+		if got != check.expect {
+			t.Errorf("%d: expected %q; got %q", i, check.expect, got)
+		}
+	}
+}
