@@ -7,6 +7,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -28,11 +29,16 @@ var defaultSetKeywords = []KeyVal{"type=file", "nlink=1", "flags=none", "mode=06
 func Walk(root string, excludes []ExcludeFunc, keywords []Keyword) (*DirectoryHierarchy, error) {
 	creator := dhCreator{DH: &DirectoryHierarchy{}}
 	// insert signature and metadata comments first (user, machine, tree, date)
-	metadataEntries := signatureEntries(root)
-	for _, e := range metadataEntries {
+	for _, e := range signatureEntries(root) {
 		e.Pos = len(creator.DH.Entries)
 		creator.DH.Entries = append(creator.DH.Entries, e)
 	}
+	// insert keyword metadata next
+	for _, e := range keywordEntries(keywords) {
+		e.Pos = len(creator.DH.Entries)
+		creator.DH.Entries = append(creator.DH.Entries, e)
+	}
+	// walk the directory and add entries
 	err := startWalk(&creator, root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -355,4 +361,16 @@ func signatureEntries(root string) []Entry {
 	sigEntries = append(sigEntries, dateEntry)
 
 	return sigEntries
+}
+
+// keywordEntries returns a slice of entries including a comment of the
+// keywords requested when generating this manifest.
+func keywordEntries(keywords []Keyword) []Entry {
+	// Convert all of the keywords to zero-value keyvals.
+	return []Entry{
+		{
+			Type: CommentType,
+			Raw:  fmt.Sprintf("#%16s%s", "keywords: ", strings.Join(FromKeywords(keywords), ",")),
+		},
+	}
 }
