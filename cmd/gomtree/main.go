@@ -29,6 +29,251 @@ var (
 	flVersion          = flag.Bool("version", false, "display the version of this tool")
 )
 
+func main() {
+	// so that defers cleanly exec
+	if err := app(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func app() error {
+	flag.Parse()
+
+	if *flDebug {
+		os.Setenv("DEBUG", "1")
+	}
+
+	if *flVersion {
+		fmt.Printf("%s :: %s\n", mtree.AppName, mtree.Version)
+		return nil
+	}
+
+	// -list-keywords
+	if *flListKeywords {
+		fmt.Println("Available keywords:")
+		for k := range mtree.KeywordFuncs {
+			fmt.Print(" ")
+			fmt.Print(k)
+			if mtree.Keyword(k).Default() {
+				fmt.Print(" (default)")
+			}
+			if !mtree.Keyword(k).Bsd() {
+				fmt.Print(" (not upstream)")
+			}
+			fmt.Print("\n")
+		}
+		return nil
+	}
+
+	// --result-format
+	formatFunc, ok := formats[*flResultFormat]
+	if !ok {
+		return fmt.Errorf("invalid output format: %s", *flResultFormat)
+	}
+
+	var (
+		err             error
+		tmpKeywords     []mtree.Keyword
+		currentKeywords []mtree.Keyword
+	)
+
+	// -k <keywords>
+	if *flUseKeywords != "" {
+		tmpKeywords = splitKeywordsArg(*flUseKeywords)
+		if !mtree.InKeywordSlice("type", tmpKeywords) {
+			tmpKeywords = append([]mtree.Keyword{"type"}, tmpKeywords...)
+		}
+	} else {
+		if *flTar != "" {
+			tmpKeywords = mtree.DefaultTarKeywords[:]
+		} else {
+			tmpKeywords = mtree.DefaultKeywords[:]
+		}
+	}
+
+	// -K <keywords>
+	if *flAddKeywords != "" {
+		for _, kw := range splitKeywordsArg(*flAddKeywords) {
+			if !mtree.InKeywordSlice(kw, tmpKeywords) {
+				tmpKeywords = append(tmpKeywords, kw)
+			}
+		}
+	}
+
+	// -bsd-keywords
+	if *flBsdKeywords {
+		for _, k := range tmpKeywords {
+			if mtree.Keyword(k).Bsd() {
+				currentKeywords = append(currentKeywords, k)
+			} else {
+				fmt.Fprintf(os.Stderr, "INFO: ignoring %q as it is not an upstream keyword\n", k)
+			}
+		}
+	} else {
+		currentKeywords = tmpKeywords
+	}
+
+	// Check mutual exclusivity of keywords.
+	// TODO(cyphar): Abstract this inside keywords.go.
+	if mtree.InKeywordSlice("tar_time", currentKeywords) && mtree.InKeywordSlice("time", currentKeywords) {
+		return fmt.Errorf("tar_time and time are mutually exclusive keywords")
+	}
+
+	// If we're doing a comparison, we always are comparing between a spec and
+	// state DH. If specDh is nil, we are generating a new one.
+	var (
+		specDh       *mtree.DirectoryHierarchy
+		stateDh      *mtree.DirectoryHierarchy
+		specKeywords []mtree.Keyword
+	)
+
+	// -f <file>
+	if *flFile != "" && !*flCreate {
+		// load the hierarchy, if we're not creating a new spec
+		fh, err := os.Open(*flFile)
+		if err != nil {
+			return err
+		}
+		specDh, err = mtree.ParseSpec(fh)
+		fh.Close()
+		if err != nil {
+			return err
+		}
+
+		// We can't check against more fields than in the specKeywords list, so
+		// currentKeywords can only have a subset of specKeywords.
+		specKeywords = specDh.UsedKeywords()
+	}
+
+	// -list-used
+	if *flListUsedKeywords {
+		if specDh == nil {
+			return fmt.Errorf("no specification provided. please provide a validation manifest")
+		}
+
+		if *flResultFormat == "json" {
+			// if they're asking for json, give it to them
+			data := map[string][]mtree.Keyword{*flFile: specKeywords}
+			buf, err := json.MarshalIndent(data, "", "  ")
+			if err != nil {
+				return err
+			}
+			fmt.Println(string(buf))
+		} else {
+			fmt.Printf("Keywords used in [%s]:\n", *flFile)
+			for _, kw := range specKeywords {
+				fmt.Printf(" %s", kw)
+				if _, ok := mtree.KeywordFuncs[kw]; !ok {
+					fmt.Print(" (unsupported)")
+				}
+				fmt.Printf("\n")
+			}
+		}
+		return nil
+	}
+
+	if specKeywords != nil {
+		// If we didn't actually change the set of keywords, we can just use specKeywords.
+		if *flUseKeywords == "" && *flAddKeywords == "" {
+			currentKeywords = specKeywords
+		}
+
+		for _, keyword := range currentKeywords {
+			// As always, time is a special case.
+			// TODO: Fix that.
+			if (keyword == "time" && mtree.InKeywordSlice("tar_time", specKeywords)) || (keyword == "tar_time" && mtree.InKeywordSlice("time", specKeywords)) {
+				continue
+			}
+		}
+	}
+
+	// -p and -T are mutually exclusive
+	if *flPath != "" && *flTar != "" {
+		return fmt.Errorf("options -T and -p are mutually exclusive")
+	}
+
+	// -p <path>
+	var rootPath = "."
+	if *flPath != "" {
+		rootPath = *flPath
+	}
+
+	// -T <tar file>
+	if *flTar != "" {
+		var input io.Reader
+		if *flTar == "-" {
+			input = os.Stdin
+		} else {
+			fh, err := os.Open(*flTar)
+			if err != nil {
+				return err
+			}
+			defer fh.Close()
+			input = fh
+		}
+		ts := mtree.NewTarStreamer(input, currentKeywords)
+
+		if _, err := io.Copy(ioutil.Discard, ts); err != nil && err != io.EOF {
+			return err
+		}
+		if err := ts.Close(); err != nil {
+			return err
+		}
+		var err error
+		stateDh, err = ts.Hierarchy()
+		if err != nil {
+			return err
+		}
+	} else {
+		// with a root directory
+		stateDh, err = mtree.Walk(rootPath, nil, currentKeywords)
+		if err != nil {
+			return err
+		}
+	}
+
+	// -c
+	if *flCreate {
+		fh := os.Stdout
+		if *flFile != "" {
+			fh, err = os.Create(*flFile)
+			if err != nil {
+				return err
+			}
+		}
+
+		// output stateDh
+		stateDh.WriteTo(fh)
+		return nil
+	}
+
+	// This is a validation.
+	if specDh != nil && stateDh != nil {
+		var res []mtree.InodeDelta
+
+		res, err = mtree.Compare(specDh, stateDh, currentKeywords)
+		if err != nil {
+			return err
+		}
+		if res != nil {
+			if isTarSpec(specDh) || *flTar != "" {
+				res = filterMissingKeywords(res)
+			}
+			//if len(res) > 0 {
+			//return fmt.Errorf("unexpected missing keywords: %d", len(res))
+			//}
+
+			out := formatFunc(res)
+			if _, err := os.Stdout.Write([]byte(out)); err != nil {
+				return err
+			}
+		}
+	} else {
+		return fmt.Errorf("neither validating or creating a manifest. Please provide additional arguments")
+	}
+	return nil
+}
+
 var formats = map[string]func([]mtree.InodeDelta) string{
 	// Outputs the errors in the BSD format.
 	"bsd": func(d []mtree.InodeDelta) string {
@@ -146,301 +391,10 @@ func isTarSpec(spec *mtree.DirectoryHierarchy) bool {
 	return false
 }
 
-func main() {
-	flag.Parse()
-
-	if *flDebug {
-		os.Setenv("DEBUG", "1")
+func splitKeywordsArg(str string) []mtree.Keyword {
+	keywords := []mtree.Keyword{}
+	for _, kw := range strings.Fields(strings.Replace(str, ",", " ", -1)) {
+		keywords = append(keywords, mtree.KeywordSynonym(kw))
 	}
-
-	// so that defers cleanly exec
-	// TODO: Switch everything to being inside a function, to remove the need for isErr.
-	var isErr bool
-	defer func() {
-		if isErr {
-			os.Exit(1)
-		}
-	}()
-
-	if *flVersion {
-		fmt.Printf("%s :: %s\n", os.Args[0], mtree.Version)
-		return
-	}
-
-	// -list-keywords
-	if *flListKeywords {
-		fmt.Println("Available keywords:")
-		for k := range mtree.KeywordFuncs {
-			fmt.Print(" ")
-			fmt.Print(k)
-			if mtree.Keyword(k).Default() {
-				fmt.Print(" (default)")
-			}
-			if !mtree.Keyword(k).Bsd() {
-				fmt.Print(" (not upstream)")
-			}
-			fmt.Print("\n")
-		}
-		return
-	}
-
-	// --result-format
-	formatFunc, ok := formats[*flResultFormat]
-	if !ok {
-		log.Printf("invalid output format: %s", *flResultFormat)
-		isErr = true
-		return
-	}
-
-	var (
-		err             error
-		tmpKeywords     []string
-		currentKeywords []string
-	)
-
-	// -k <keywords>
-	if *flUseKeywords != "" {
-		tmpKeywords = splitKeywordsArg(*flUseKeywords)
-		if !inSlice("type", tmpKeywords) {
-			tmpKeywords = append([]string{"type"}, tmpKeywords...)
-		}
-	} else {
-		if *flTar != "" {
-			tmpKeywords = mtree.DefaultTarKeywords[:]
-		} else {
-			tmpKeywords = mtree.DefaultKeywords[:]
-		}
-	}
-
-	// -K <keywords>
-	if *flAddKeywords != "" {
-		for _, kw := range splitKeywordsArg(*flAddKeywords) {
-			if !inSlice(kw, tmpKeywords) {
-				tmpKeywords = append(tmpKeywords, kw)
-			}
-		}
-	}
-
-	// -bsd-keywords
-	if *flBsdKeywords {
-		for _, k := range tmpKeywords {
-			if mtree.Keyword(k).Bsd() {
-				currentKeywords = append(currentKeywords, k)
-			} else {
-				fmt.Fprintf(os.Stderr, "INFO: ignoring %q as it is not an upstream keyword\n", k)
-			}
-		}
-	} else {
-		currentKeywords = tmpKeywords
-	}
-
-	// Check mutual exclusivity of keywords.
-	// TODO(cyphar): Abstract this inside keywords.go.
-	if inSlice("tar_time", currentKeywords) && inSlice("time", currentKeywords) {
-		log.Printf("tar_time and time are mutually exclusive keywords")
-		isErr = true
-		return
-	}
-
-	// If we're doing a comparison, we always are comparing between a spec and
-	// state DH. If specDh is nil, we are generating a new one.
-	var (
-		specDh       *mtree.DirectoryHierarchy
-		stateDh      *mtree.DirectoryHierarchy
-		specKeywords []string
-	)
-
-	// -f <file>
-	if *flFile != "" && !*flCreate {
-		// load the hierarchy, if we're not creating a new spec
-		fh, err := os.Open(*flFile)
-		if err != nil {
-			log.Println(err)
-			isErr = true
-			return
-		}
-		specDh, err = mtree.ParseSpec(fh)
-		fh.Close()
-		if err != nil {
-			log.Println(err)
-			isErr = true
-			return
-		}
-
-		// We can't check against more fields than in the specKeywords list, so
-		// currentKeywords can only have a subset of specKeywords.
-		specKeywords = mtree.CollectUsedKeywords(specDh)
-	}
-
-	// -list-used
-	if *flListUsedKeywords {
-		if specDh == nil {
-			log.Println("no specification provided. please provide a validation manifest")
-			isErr = true
-			return
-		}
-
-		if *flResultFormat == "json" {
-			// if they're asking for json, give it to them
-			data := map[string][]string{*flFile: specKeywords}
-			buf, err := json.MarshalIndent(data, "", "  ")
-			if err != nil {
-				defer os.Exit(1)
-				isErr = true
-				return
-			}
-			fmt.Println(string(buf))
-		} else {
-			fmt.Printf("Keywords used in [%s]:\n", *flFile)
-			for _, kw := range specKeywords {
-				fmt.Printf(" %s", kw)
-				if _, ok := mtree.KeywordFuncs[kw]; !ok {
-					fmt.Print(" (unsupported)")
-				}
-				fmt.Printf("\n")
-			}
-		}
-		return
-	}
-
-	if specKeywords != nil {
-		// If we didn't actually change the set of keywords, we can just use specKeywords.
-		if *flUseKeywords == "" && *flAddKeywords == "" {
-			currentKeywords = specKeywords
-		}
-
-		for _, keyword := range currentKeywords {
-			// As always, time is a special case.
-			// TODO: Fix that.
-			if (keyword == "time" && inSlice("tar_time", specKeywords)) || (keyword == "tar_time" && inSlice("time", specKeywords)) {
-				continue
-			}
-
-			if !inSlice(keyword, specKeywords) {
-				log.Printf("cannot verify keywords not in mtree specification: %s\n", keyword)
-				isErr = true
-			}
-			if isErr {
-				return
-			}
-		}
-	}
-
-	// -p and -T are mutually exclusive
-	if *flPath != "" && *flTar != "" {
-		log.Println("options -T and -p are mutually exclusive")
-		isErr = true
-		return
-	}
-
-	// -p <path>
-	var rootPath = "."
-	if *flPath != "" {
-		rootPath = *flPath
-	}
-
-	// -T <tar file>
-	if *flTar != "" {
-		var input io.Reader
-		if *flTar == "-" {
-			input = os.Stdin
-		} else {
-			fh, err := os.Open(*flTar)
-			if err != nil {
-				log.Println(err)
-				isErr = true
-				return
-			}
-			defer fh.Close()
-			input = fh
-		}
-		ts := mtree.NewTarStreamer(input, currentKeywords)
-
-		if _, err := io.Copy(ioutil.Discard, ts); err != nil && err != io.EOF {
-			log.Println(err)
-			isErr = true
-			return
-		}
-		if err := ts.Close(); err != nil {
-			log.Println(err)
-			isErr = true
-			return
-		}
-		var err error
-		stateDh, err = ts.Hierarchy()
-		if err != nil {
-			log.Println(err)
-			isErr = true
-			return
-		}
-	} else {
-		// with a root directory
-		stateDh, err = mtree.Walk(rootPath, nil, currentKeywords)
-		if err != nil {
-			log.Println(err)
-			isErr = true
-			return
-		}
-	}
-
-	// -c
-	if *flCreate {
-		fh := os.Stdout
-		if *flFile != "" {
-			fh, err = os.Create(*flFile)
-			if err != nil {
-				log.Println(err)
-				isErr = true
-				return
-			}
-		}
-
-		// output stateDh
-		stateDh.WriteTo(fh)
-		return
-	}
-
-	// This is a validation.
-	if specDh != nil && stateDh != nil {
-		var res []mtree.InodeDelta
-
-		res, err = mtree.Compare(specDh, stateDh, currentKeywords)
-		if err != nil {
-			log.Println(err)
-			isErr = true
-			return
-		}
-		if res != nil {
-			if isTarSpec(specDh) || *flTar != "" {
-				res = filterMissingKeywords(res)
-			}
-			if len(res) > 0 {
-				defer os.Exit(1)
-			}
-
-			out := formatFunc(res)
-			if _, err := os.Stdout.Write([]byte(out)); err != nil {
-				log.Println(err)
-				isErr = true
-				return
-			}
-		}
-	} else {
-		log.Println("neither validating or creating a manifest. Please provide additional arguments")
-		isErr = true
-		return
-	}
-}
-
-func splitKeywordsArg(str string) []string {
-	return strings.Fields(strings.Replace(str, ",", " ", -1))
-}
-
-func inSlice(a string, list []string) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
-	}
-	return false
+	return keywords
 }

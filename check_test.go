@@ -69,14 +69,14 @@ func TestCheckKeywords(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(res) != 1 {
-		t.Errorf("expected to get 1 delta on changed mtimes, but did not")
+		t.Fatal("expected to get 1 delta on changed mtimes, but did not")
 	}
 	if res[0].Type() != Modified {
 		t.Errorf("expected to get modified delta on changed mtimes, but did not")
 	}
 
 	// Check again, but only sha1 and mode. This ought to pass.
-	res, err = Check(dir, dh, []string{"sha1", "mode"})
+	res, err = Check(dir, dh, []Keyword{"sha1", "mode"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -200,7 +200,7 @@ func TestTarTime(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	keywords := CollectUsedKeywords(dh)
+	keywords := dh.UsedKeywords()
 
 	// make sure "time" keyword works
 	_, err = Check(dir, dh, keywords)

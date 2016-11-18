@@ -3,10 +3,10 @@ BUILD := gomtree
 CWD := $(shell pwd)
 SOURCE_FILES := $(shell find . -type f -name "*.go")
 
-default: validation build
+default: build validation 
 
 .PHONY: validation
-validation: test lint vet .cli.test
+validation: .test .lint .vet .cli.test
 
 .PHONY: test
 test: .test

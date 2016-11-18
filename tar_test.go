@@ -128,7 +128,7 @@ func TestArchiveCreation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	str := NewTarStreamer(fh, []string{"sha1"})
+	str := NewTarStreamer(fh, []Keyword{"sha1"})
 
 	if _, err := io.Copy(ioutil.Discard, str); err != nil && err != io.EOF {
 		t.Fatal(err)
@@ -145,7 +145,7 @@ func TestArchiveCreation(t *testing.T) {
 	}
 
 	// Test the tar manifest against the actual directory
-	res, err := Check("./testdata/collection", tdh, []string{"sha1"})
+	res, err := Check("./testdata/collection", tdh, []Keyword{"sha1"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -158,7 +158,7 @@ func TestArchiveCreation(t *testing.T) {
 	}
 
 	// Test the tar manifest against itself
-	res, err = TarCheck(tdh, tdh, []string{"sha1"})
+	res, err = TarCheck(tdh, tdh, []Keyword{"sha1"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -170,11 +170,11 @@ func TestArchiveCreation(t *testing.T) {
 	}
 
 	// Validate the directory manifest against the archive
-	dh, err := Walk("./testdata/collection", nil, []string{"sha1"})
+	dh, err := Walk("./testdata/collection", nil, []Keyword{"sha1"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	res, err = TarCheck(tdh, dh, []string{"sha1"})
+	res, err = TarCheck(tdh, dh, []Keyword{"sha1"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -212,7 +212,7 @@ func TestTreeTraversal(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	res, err := TarCheck(tdh, tdh, []string{"sha1"})
+	res, err := TarCheck(tdh, tdh, []Keyword{"sha1"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -224,7 +224,7 @@ func TestTreeTraversal(t *testing.T) {
 	}
 
 	// top-level "." directory will contain contents of traversal.tar
-	res, err = Check("./testdata/.", tdh, []string{"sha1"})
+	res, err = Check("./testdata/.", tdh, []Keyword{"sha1"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -262,7 +262,7 @@ func TestTreeTraversal(t *testing.T) {
 	}
 
 	// Implied top-level "." directory will contain the contents of singlefile.tar
-	res, err = Check("./testdata/.", tdh, []string{"sha1"})
+	res, err = Check("./testdata/.", tdh, []Keyword{"sha1"})
 	if err != nil {
 		t.Fatal(err)
 	}
