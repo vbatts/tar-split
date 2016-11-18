@@ -15,12 +15,12 @@ import (
 // simple walk of current directory, and imediately check it.
 // may not be parallelizable.
 func TestCompare(t *testing.T) {
-	old, err := Walk(".", nil, append(DefaultKeywords, "sha1"))
+	old, err := Walk(".", nil, append(DefaultKeywords, "sha1"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	new, err := Walk(".", nil, append(DefaultKeywords, "sha1"))
+	new, err := Walk(".", nil, append(DefaultKeywords, "sha1"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +59,7 @@ func TestCompareModified(t *testing.T) {
 	}
 
 	// Walk the current state.
-	old, err := Walk(dir, nil, append(DefaultKeywords, "sha1"))
+	old, err := Walk(dir, nil, append(DefaultKeywords, "sha1"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ func TestCompareModified(t *testing.T) {
 	}
 
 	// Walk the new state.
-	new, err := Walk(dir, nil, append(DefaultKeywords, "sha1"))
+	new, err := Walk(dir, nil, append(DefaultKeywords, "sha1"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -140,7 +140,7 @@ func TestCompareMissing(t *testing.T) {
 	}
 
 	// Walk the current state.
-	old, err := Walk(dir, nil, append(DefaultKeywords, "sha1"))
+	old, err := Walk(dir, nil, append(DefaultKeywords, "sha1"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,7 +159,7 @@ func TestCompareMissing(t *testing.T) {
 	}
 
 	// Walk the new state.
-	new, err := Walk(dir, nil, append(DefaultKeywords, "sha1"))
+	new, err := Walk(dir, nil, append(DefaultKeywords, "sha1"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -215,7 +215,7 @@ func TestCompareExtra(t *testing.T) {
 	defer os.RemoveAll(dir)
 
 	// Walk the current state.
-	old, err := Walk(dir, nil, append(DefaultKeywords, "sha1"))
+	old, err := Walk(dir, nil, append(DefaultKeywords, "sha1"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -237,7 +237,7 @@ func TestCompareExtra(t *testing.T) {
 	}
 
 	// Walk the new state.
-	new, err := Walk(dir, nil, append(DefaultKeywords, "sha1"))
+	new, err := Walk(dir, nil, append(DefaultKeywords, "sha1"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -309,7 +309,7 @@ func TestCompareKeys(t *testing.T) {
 	}
 
 	// Walk the current state.
-	old, err := Walk(dir, nil, append(DefaultKeywords, "sha1"))
+	old, err := Walk(dir, nil, append(DefaultKeywords, "sha1"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -320,7 +320,7 @@ func TestCompareKeys(t *testing.T) {
 	}
 
 	// Walk the new state.
-	new, err := Walk(dir, nil, append(DefaultKeywords, "sha1"))
+	new, err := Walk(dir, nil, append(DefaultKeywords, "sha1"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -382,7 +382,7 @@ func TestTarCompare(t *testing.T) {
 	}
 
 	// Walk the current state.
-	old, err := Walk(dir, nil, append(DefaultKeywords, "sha1"))
+	old, err := Walk(dir, nil, append(DefaultKeywords, "sha1"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

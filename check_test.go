@@ -12,12 +12,12 @@ import (
 // simple walk of current directory, and imediately check it.
 // may not be parallelizable.
 func TestCheck(t *testing.T) {
-	dh, err := Walk(".", nil, append(DefaultKeywords, "sha1"))
+	dh, err := Walk(".", nil, append(DefaultKeywords, "sha1"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	res, err := Check(".", dh, nil)
+	res, err := Check(".", dh, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,13 +43,13 @@ func TestCheckKeywords(t *testing.T) {
 	}
 
 	// Walk this tempdir
-	dh, err := Walk(dir, nil, append(DefaultKeywords, "sha1"))
+	dh, err := Walk(dir, nil, append(DefaultKeywords, "sha1"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Check for sanity. This ought to pass.
-	res, err := Check(dir, dh, nil)
+	res, err := Check(dir, dh, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,7 +64,7 @@ func TestCheckKeywords(t *testing.T) {
 	}
 
 	// Check again. This ought to fail.
-	res, err = Check(dir, dh, nil)
+	res, err = Check(dir, dh, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,7 +76,7 @@ func TestCheckKeywords(t *testing.T) {
 	}
 
 	// Check again, but only sha1 and mode. This ought to pass.
-	res, err = Check(dir, dh, []Keyword{"sha1", "mode"})
+	res, err = Check(dir, dh, []Keyword{"sha1", "mode"}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,12 +86,12 @@ func TestCheckKeywords(t *testing.T) {
 }
 
 func ExampleCheck() {
-	dh, err := Walk(".", nil, append(DefaultKeywords, "sha1"))
+	dh, err := Walk(".", nil, append(DefaultKeywords, "sha1"), nil)
 	if err != nil {
 		// handle error ...
 	}
 
-	res, err := Check(".", dh, nil)
+	res, err := Check(".", dh, nil, nil)
 	if err != nil {
 		// handle error ...
 	}
@@ -103,11 +103,11 @@ func ExampleCheck() {
 // Tests default action for evaluating a symlink, which is just to compare the
 // link itself, not to follow it
 func TestDefaultBrokenLink(t *testing.T) {
-	dh, err := Walk("./testdata/dirwithbrokenlink", nil, append(DefaultKeywords, "sha1"))
+	dh, err := Walk("./testdata/dirwithbrokenlink", nil, append(DefaultKeywords, "sha1"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	res, err := Check("./testdata/dirwithbrokenlink", dh, nil)
+	res, err := Check("./testdata/dirwithbrokenlink", dh, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,7 +155,7 @@ func TestTimeComparison(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	res, err := Check(dir, dh, nil)
+	res, err := Check(dir, dh, nil, nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -203,13 +203,13 @@ func TestTarTime(t *testing.T) {
 	keywords := dh.UsedKeywords()
 
 	// make sure "time" keyword works
-	_, err = Check(dir, dh, keywords)
+	_, err = Check(dir, dh, keywords, nil)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// make sure tar_time wins
-	res, err := Check(dir, dh, append(keywords, "tar_time"))
+	res, err := Check(dir, dh, append(keywords, "tar_time"), nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -254,7 +254,7 @@ func TestIgnoreComments(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	res, err := Check(dir, dh, nil)
+	res, err := Check(dir, dh, nil, nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -274,7 +274,7 @@ func TestIgnoreComments(t *testing.T) {
 `
 	dh, err = ParseSpec(bytes.NewBufferString(spec))
 
-	res, err = Check(dir, dh, nil)
+	res, err = Check(dir, dh, nil, nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -306,11 +306,11 @@ func TestCheckNeedsEncoding(t *testing.T) {
 		t.Error(err)
 	}
 
-	dh, err := Walk(dir, nil, DefaultKeywords)
+	dh, err := Walk(dir, nil, DefaultKeywords, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	res, err := Check(dir, dh, nil)
+	res, err := Check(dir, dh, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
