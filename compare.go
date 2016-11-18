@@ -185,10 +185,16 @@ func compareEntry(oldEntry, newEntry Entry) ([]KeyDelta, error) {
 	}
 
 	diffs := map[Keyword]*stateT{}
+	oldKeys := oldEntry.AllKeys()
+	newKeys := newEntry.AllKeys()
 
 	// Fill the map with the old keys first.
-	for _, kv := range oldEntry.AllKeys() {
+	for _, kv := range oldKeys {
 		key := kv.Keyword()
+		// only add this diff if the new keys has this keyword
+		if key != "tar_time" && key != "time" && HasKeyword(newKeys, key) == emptyKV {
+			continue
+		}
 
 		// Cannot take &kv because it's the iterator.
 		copy := new(KeyVal)
@@ -202,8 +208,12 @@ func compareEntry(oldEntry, newEntry Entry) ([]KeyDelta, error) {
 	}
 
 	// Then fill the new keys.
-	for _, kv := range newEntry.AllKeys() {
+	for _, kv := range newKeys {
 		key := kv.Keyword()
+		// only add this diff if the old keys has this keyword
+		if key != "tar_time" && key != "time" && HasKeyword(oldKeys, key) == emptyKV {
+			continue
+		}
 
 		// Cannot take &kv because it's the iterator.
 		copy := new(KeyVal)
@@ -319,12 +329,6 @@ func Compare(oldDh, newDh *DirectoryHierarchy, keys []Keyword) ([]InodeDelta, er
 		New *Entry
 	}
 
-	// Make dealing with the keys mapping easier.
-	keySet := map[Keyword]struct{}{}
-	for _, key := range keys {
-		keySet[key] = struct{}{}
-	}
-
 	// To deal with different orderings of the entries, use a path-keyed
 	// map to make sure we don't start comparing unrelated entries.
 	diffs := map[string]*stateT{}
@@ -405,7 +409,7 @@ func Compare(oldDh, newDh *DirectoryHierarchy, keys []Keyword) ([]InodeDelta, er
 			if keys != nil {
 				var filterChanged []KeyDelta
 				for _, keyDiff := range changed {
-					if _, ok := keySet[keyDiff.name]; ok {
+					if InKeywordSlice(keyDiff.name, keys) {
 						filterChanged = append(filterChanged, keyDiff)
 					}
 				}

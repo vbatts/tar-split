@@ -184,10 +184,6 @@ func app() error {
 			if (keyword == "time" && mtree.InKeywordSlice("tar_time", specKeywords)) || (keyword == "tar_time" && mtree.InKeywordSlice("time", specKeywords)) {
 				continue
 			}
-
-			if !mtree.InKeywordSlice(keyword, specKeywords) {
-				return fmt.Errorf("cannot verify keywords not in mtree specification: %s\n", keyword)
-			}
 		}
 	}
 
@@ -263,9 +259,9 @@ func app() error {
 			if isTarSpec(specDh) || *flTar != "" {
 				res = filterMissingKeywords(res)
 			}
-			if len(res) > 0 {
-				return fmt.Errorf("unexpected missing keywords: %d", len(res))
-			}
+			//if len(res) > 0 {
+			//return fmt.Errorf("unexpected missing keywords: %d", len(res))
+			//}
 
 			out := formatFunc(res)
 			if _, err := os.Stdout.Write([]byte(out)); err != nil {
