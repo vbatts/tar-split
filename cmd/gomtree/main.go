@@ -15,11 +15,14 @@ import (
 )
 
 var (
-	flCreate           = flag.Bool("c", false, "create a directory hierarchy spec")
-	flFile             = flag.String("f", "", "directory hierarchy spec to validate")
-	flPath             = flag.String("p", "", "root path that the hierarchy spec is relative to")
-	flAddKeywords      = flag.String("K", "", "Add the specified (delimited by comma or space) keywords to the current set of keywords")
-	flUseKeywords      = flag.String("k", "", "Use the specified (delimited by comma or space) keywords as the current set of keywords")
+	// Flags common with mtree(8)
+	flCreate      = flag.Bool("c", false, "create a directory hierarchy spec")
+	flFile        = flag.String("f", "", "directory hierarchy spec to validate")
+	flPath        = flag.String("p", "", "root path that the hierarchy spec is relative to")
+	flAddKeywords = flag.String("K", "", "Add the specified (delimited by comma or space) keywords to the current set of keywords")
+	flUseKeywords = flag.String("k", "", "Use the specified (delimited by comma or space) keywords as the current set of keywords")
+
+	// Flags unique to gomtree
 	flListKeywords     = flag.Bool("list-keywords", false, "List the keywords available")
 	flResultFormat     = flag.String("result-format", "bsd", "output the validation results using the given format (bsd, json, path)")
 	flTar              = flag.String("T", "", "use tar archive to create or validate a directory hierarchy spec (\"-\" indicates stdin)")
