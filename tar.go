@@ -25,7 +25,7 @@ var tarDefaultSetKeywords = []KeyVal{
 
 // NewTarStreamer streams a tar archive and creates a file hierarchy based off
 // of the tar metadata headers
-func NewTarStreamer(r io.Reader, keywords []Keyword) Streamer {
+func NewTarStreamer(r io.Reader, excludes []ExcludeFunc, keywords []Keyword) Streamer {
 	pR, pW := io.Pipe()
 	ts := &tarStream{
 		pipeReader: pR,
@@ -35,6 +35,7 @@ func NewTarStreamer(r io.Reader, keywords []Keyword) Streamer {
 		tarReader:  tar.NewReader(pR),
 		keywords:   keywords,
 		hardlinks:  map[string][]string{},
+		excludes:   excludes,
 	}
 
 	go ts.readHeaders()
@@ -50,6 +51,7 @@ type tarStream struct {
 	teeReader  io.Reader
 	tarReader  *tar.Reader
 	keywords   []Keyword
+	excludes   []ExcludeFunc
 	err        error
 }
 
@@ -85,12 +87,20 @@ func (ts *tarStream) readHeaders() {
 		e.Pos = len(ts.creator.DH.Entries)
 		ts.creator.DH.Entries = append(ts.creator.DH.Entries, e)
 	}
+hdrloop:
 	for {
 		hdr, err := ts.tarReader.Next()
 		if err != nil {
 			ts.pipeReader.CloseWithError(err)
 			return
 		}
+
+		for _, ex := range ts.excludes {
+			if ex(hdr.Name, hdr.FileInfo()) {
+				continue hdrloop
+			}
+		}
+
 		// Because the content of the file may need to be read by several
 		// KeywordFuncs, it needs to be an io.Seeker as well. So, just reading from
 		// ts.tarReader is not enough.

@@ -35,3 +35,20 @@ func TestWalk(t *testing.T) {
 		}
 	}
 }
+
+func TestWalkDirectory(t *testing.T) {
+	dh, err := Walk(".", []ExcludeFunc{ExcludeNonDirectories}, []Keyword{"type"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i := range dh.Entries {
+		for _, keyval := range dh.Entries[i].AllKeys() {
+			if dh.Entries[i].Type == FullType || dh.Entries[i].Type == RelativeType {
+				if keyval.Keyword() == "type" && keyval.Value() != "dir" {
+					t.Errorf("expected only directories, but %q is a %q", dh.Entries[i].Name, keyval.Value())
+				}
+			}
+		}
+	}
+}

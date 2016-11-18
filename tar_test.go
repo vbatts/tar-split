@@ -16,7 +16,7 @@ func ExampleStreamer() {
 	if err != nil {
 		// handle error ...
 	}
-	str := NewTarStreamer(fh, nil)
+	str := NewTarStreamer(fh, nil, nil)
 	if err := extractTar("/tmp/dir", str); err != nil {
 		// handle error ...
 	}
@@ -59,7 +59,7 @@ func TestTar(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	str := NewTarStreamer(fh, append(DefaultKeywords, "sha1"))
+	str := NewTarStreamer(fh, nil, append(DefaultKeywords, "sha1"))
 
 	if _, err := io.Copy(ioutil.Discard, str); err != nil && err != io.EOF {
 		t.Fatal(err)
@@ -128,7 +128,7 @@ func TestArchiveCreation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	str := NewTarStreamer(fh, []Keyword{"sha1"})
+	str := NewTarStreamer(fh, nil, []Keyword{"sha1"})
 
 	if _, err := io.Copy(ioutil.Discard, str); err != nil && err != io.EOF {
 		t.Fatal(err)
@@ -196,7 +196,7 @@ func TestTreeTraversal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	str := NewTarStreamer(fh, DefaultTarKeywords)
+	str := NewTarStreamer(fh, nil, DefaultTarKeywords)
 
 	if _, err = io.Copy(ioutil.Discard, str); err != nil && err != io.EOF {
 		t.Fatal(err)
@@ -249,7 +249,7 @@ func TestTreeTraversal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	str = NewTarStreamer(fh, DefaultTarKeywords)
+	str = NewTarStreamer(fh, nil, DefaultTarKeywords)
 	if _, err = io.Copy(ioutil.Discard, str); err != nil && err != io.EOF {
 		t.Fatal(err)
 	}
@@ -287,7 +287,7 @@ func TestHardlinks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	str := NewTarStreamer(fh, append(DefaultTarKeywords, "nlink"))
+	str := NewTarStreamer(fh, nil, append(DefaultTarKeywords, "nlink"))
 
 	if _, err = io.Copy(ioutil.Discard, str); err != nil && err != io.EOF {
 		t.Fatal(err)
@@ -368,4 +368,34 @@ func makeTarStream(ff []fakeFile) ([]byte, error) {
 		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+func TestArchiveExcludeNonDirectory(t *testing.T) {
+	fh, err := os.Open("./testdata/collection.tar")
+	if err != nil {
+		t.Fatal(err)
+	}
+	str := NewTarStreamer(fh, []ExcludeFunc{ExcludeNonDirectories}, []Keyword{"type"})
+
+	if _, err := io.Copy(ioutil.Discard, str); err != nil && err != io.EOF {
+		t.Fatal(err)
+	}
+	if err := str.Close(); err != nil {
+		t.Fatal(err)
+	}
+	fh.Close()
+	// get DirectoryHierarcy struct from walking the tar archive
+	tdh, err := str.Hierarchy()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := range tdh.Entries {
+		for _, keyval := range tdh.Entries[i].AllKeys() {
+			if tdh.Entries[i].Type == FullType || tdh.Entries[i].Type == RelativeType {
+				if keyval.Keyword() == "type" && keyval.Value() != "dir" {
+					t.Errorf("expected only directories, but %q is a %q", tdh.Entries[i].Name, keyval.Value())
+				}
+			}
+		}
+	}
 }
