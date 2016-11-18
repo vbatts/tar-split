@@ -15,6 +15,11 @@ import (
 // returns true, then the path is not included in the spec.
 type ExcludeFunc func(path string, info os.FileInfo) bool
 
+// ExcludeNonDirectories is an ExcludeFunc for excluding all paths that are not directories
+var ExcludeNonDirectories = func(path string, info os.FileInfo) bool {
+	return !info.IsDir()
+}
+
 var defaultSetKeywords = []KeyVal{"type=file", "nlink=1", "flags=none", "mode=0664"}
 
 // Walk from root directory and assemble the DirectoryHierarchy. excludes

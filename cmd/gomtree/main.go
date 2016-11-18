@@ -16,11 +16,12 @@ import (
 
 var (
 	// Flags common with mtree(8)
-	flCreate      = flag.Bool("c", false, "create a directory hierarchy spec")
-	flFile        = flag.String("f", "", "directory hierarchy spec to validate")
-	flPath        = flag.String("p", "", "root path that the hierarchy spec is relative to")
-	flAddKeywords = flag.String("K", "", "Add the specified (delimited by comma or space) keywords to the current set of keywords")
-	flUseKeywords = flag.String("k", "", "Use the specified (delimited by comma or space) keywords as the current set of keywords")
+	flCreate        = flag.Bool("c", false, "create a directory hierarchy spec")
+	flFile          = flag.String("f", "", "directory hierarchy spec to validate")
+	flPath          = flag.String("p", "", "root path that the hierarchy spec is relative to")
+	flAddKeywords   = flag.String("K", "", "Add the specified (delimited by comma or space) keywords to the current set of keywords")
+	flUseKeywords   = flag.String("k", "", "Use the specified (delimited by comma or space) keywords as the current set of keywords")
+	flDirectoryOnly = flag.Bool("d", false, "Ignore everything except directory type files")
 
 	// Flags unique to gomtree
 	flListKeywords     = flag.Bool("list-keywords", false, "List the keywords available")
@@ -201,6 +202,12 @@ func app() error {
 		rootPath = *flPath
 	}
 
+	excludes := []mtree.ExcludeFunc{}
+	// -d
+	if *flDirectoryOnly {
+		excludes = append(excludes, mtree.ExcludeNonDirectories)
+	}
+
 	// -T <tar file>
 	if *flTar != "" {
 		var input io.Reader
@@ -214,7 +221,7 @@ func app() error {
 			defer fh.Close()
 			input = fh
 		}
-		ts := mtree.NewTarStreamer(input, currentKeywords)
+		ts := mtree.NewTarStreamer(input, excludes, currentKeywords)
 
 		if _, err := io.Copy(ioutil.Discard, ts); err != nil && err != io.EOF {
 			return err
@@ -229,7 +236,7 @@ func app() error {
 		}
 	} else {
 		// with a root directory
-		stateDh, err = mtree.Walk(rootPath, nil, currentKeywords)
+		stateDh, err = mtree.Walk(rootPath, excludes, currentKeywords)
 		if err != nil {
 			return err
 		}

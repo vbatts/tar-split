@@ -391,7 +391,7 @@ func TestTarCompare(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	str := NewTarStreamer(bytes.NewBuffer(ts), append(DefaultTarKeywords, "sha1"))
+	str := NewTarStreamer(bytes.NewBuffer(ts), nil, append(DefaultTarKeywords, "sha1"))
 	if _, err = io.Copy(ioutil.Discard, str); err != nil && err != io.EOF {
 		t.Fatal(err)
 	}
