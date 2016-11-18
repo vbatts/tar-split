@@ -7,7 +7,7 @@ import (
 
 var checklist = []struct {
 	blob string
-	set  []string
+	set  []Keyword
 }{
 	{blob: `
 #       machine: bananaboat
@@ -19,7 +19,7 @@ var checklist = []struct {
 . size=4096 type=dir mode=0755 nlink=8 time=1479326055.423853146
   .COMMIT_EDITMSG.un~ size=1006 mode=0644 time=1479325423.450468662 sha1digest=dead0face
   .TAG_EDITMSG.un~ size=1069 mode=0600 time=1471362316.801317529 sha256digest=dead0face
-`, set: []string{"size", "mode", "time", "sha256digest"}},
+`, set: []Keyword{"size", "mode", "time", "sha256digest"}},
 }
 
 func TestUsedKeywords(t *testing.T) {
@@ -30,7 +30,7 @@ func TestUsedKeywords(t *testing.T) {
 		}
 		used := dh.UsedKeywords()
 		for _, k := range item.set {
-			if !inSlice(k, used) {
+			if !InKeywordSlice(k, used) {
 				t.Errorf("%d: expected to find %q in %q", i, k, used)
 			}
 		}

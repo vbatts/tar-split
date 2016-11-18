@@ -28,8 +28,8 @@ func (dh DirectoryHierarchy) WriteTo(w io.Writer) (n int64, err error) {
 
 // UsedKeywords collects and returns all the keywords used in a
 // a DirectoryHierarchy
-func (dh DirectoryHierarchy) UsedKeywords() []string {
-	usedkeywords := []string{}
+func (dh DirectoryHierarchy) UsedKeywords() []Keyword {
+	usedkeywords := []Keyword{}
 	for _, e := range dh.Entries {
 		switch e.Type {
 		case FullType, RelativeType, SpecialType:
@@ -37,8 +37,8 @@ func (dh DirectoryHierarchy) UsedKeywords() []string {
 				kvs := e.Keywords
 				for _, kv := range kvs {
 					kw := KeyVal(kv).Keyword()
-					if !inSlice(kw, usedkeywords) {
-						usedkeywords = append(usedkeywords, KeywordSynonym(kw))
+					if !InKeywordSlice(kw, usedkeywords) {
+						usedkeywords = append(usedkeywords, KeywordSynonym(string(kw)))
 					}
 				}
 			}

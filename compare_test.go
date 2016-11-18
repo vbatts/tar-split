@@ -325,7 +325,7 @@ func TestCompareKeys(t *testing.T) {
 	}
 
 	// Compare.
-	diffs, err := Compare(old, new, []string{"size"})
+	diffs, err := Compare(old, new, []Keyword{"size"})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -15,12 +15,12 @@ import (
 // returns true, then the path is not included in the spec.
 type ExcludeFunc func(path string, info os.FileInfo) bool
 
-var defaultSetKeywords = []string{"type=file", "nlink=1", "flags=none", "mode=0664"}
+var defaultSetKeywords = []KeyVal{"type=file", "nlink=1", "flags=none", "mode=0664"}
 
 // Walk from root directory and assemble the DirectoryHierarchy. excludes
 // provided are used to skip paths. keywords are the set to collect from the
 // walked paths. The recommended default list is DefaultKeywords.
-func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHierarchy, error) {
+func Walk(root string, excludes []ExcludeFunc, keywords []Keyword) (*DirectoryHierarchy, error) {
 	creator := dhCreator{DH: &DirectoryHierarchy{}}
 	// insert signature and metadata comments first (user, machine, tree, date)
 	metadataEntries := signatureEntries(root)
@@ -32,7 +32,7 @@ func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHie
 		if err != nil {
 			return err
 		}
-		for _, ex := range exlcudes {
+		for _, ex := range excludes {
 			if ex(path, info) {
 				return nil
 			}
@@ -71,7 +71,7 @@ func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHie
 					Name:     "/set",
 					Type:     SpecialType,
 					Pos:      len(creator.DH.Entries),
-					Keywords: keywordSelector(defaultSetKeywords, keywords),
+					Keywords: keyvalSelector(defaultSetKeywords, keywords),
 				}
 				for _, keyword := range SetKeywords {
 					err := func() error {
@@ -103,7 +103,7 @@ func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHie
 				creator.DH.Entries = append(creator.DH.Entries, e)
 			} else if creator.curSet != nil {
 				// check the attributes of the /set keywords and re-set if changed
-				klist := []string{}
+				klist := []KeyVal{}
 				for _, keyword := range SetKeywords {
 					err := func() error {
 						var r io.Reader
@@ -135,7 +135,7 @@ func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHie
 
 				needNewSet := false
 				for _, k := range klist {
-					if !inSlice(k, creator.curSet.Keywords) {
+					if !inKeyValSlice(k, creator.curSet.Keywords) {
 						needNewSet = true
 					}
 				}
@@ -144,7 +144,7 @@ func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHie
 						Name:     "/set",
 						Type:     SpecialType,
 						Pos:      len(creator.DH.Entries),
-						Keywords: keywordSelector(append(defaultSetKeywords, klist...), keywords),
+						Keywords: keyvalSelector(append(defaultSetKeywords, klist...), keywords),
 					}
 					creator.curSet = &e
 					creator.DH.Entries = append(creator.DH.Entries, e)
@@ -181,7 +181,7 @@ func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHie
 				if err != nil {
 					return err
 				}
-				if str != "" && !inSlice(str, creator.curSet.Keywords) {
+				if str != "" && !inKeyValSlice(str, creator.curSet.Keywords) {
 					e.Keywords = append(e.Keywords, str)
 				}
 				return nil
@@ -207,15 +207,6 @@ func Walk(root string, exlcudes []ExcludeFunc, keywords []string) (*DirectoryHie
 		return nil
 	})
 	return creator.DH, err
-}
-
-func inSlice(a string, list []string) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
-	}
-	return false
 }
 
 // startWalk walks the file tree rooted at root, calling walkFn for each file or

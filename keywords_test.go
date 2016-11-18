@@ -54,7 +54,7 @@ func TestKeywordsTimeNano(t *testing.T) {
 		{857125628319, 0},
 	} {
 		mtime := time.Unix(test.sec, test.nsec)
-		expected := fmt.Sprintf("time=%d.%9.9d", test.sec, test.nsec)
+		expected := KeyVal(fmt.Sprintf("time=%d.%9.9d", test.sec, test.nsec))
 		got, err := timeKeywordFunc("", fakeFileInfo{
 			mtime: mtime,
 		}, nil)
@@ -81,7 +81,7 @@ func TestKeywordsTimeTar(t *testing.T) {
 		{857125628319, 0},
 	} {
 		mtime := time.Unix(test.sec, test.nsec)
-		expected := fmt.Sprintf("tar_time=%d.%9.9d", test.sec, 0)
+		expected := KeyVal(fmt.Sprintf("tar_time=%d.%9.9d", test.sec, 0))
 		got, err := tartimeKeywordFunc("", fakeFileInfo{
 			mtime: mtime,
 		}, nil)
@@ -96,7 +96,8 @@ func TestKeywordsTimeTar(t *testing.T) {
 
 func TestKeywordSynonym(t *testing.T) {
 	checklist := []struct {
-		give, expect string
+		give   string
+		expect Keyword
 	}{
 		{give: "time", expect: "time"},
 		{give: "md5", expect: "md5digest"},

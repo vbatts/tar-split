@@ -73,15 +73,15 @@ func app() error {
 
 	var (
 		err             error
-		tmpKeywords     []string
-		currentKeywords []string
+		tmpKeywords     []mtree.Keyword
+		currentKeywords []mtree.Keyword
 	)
 
 	// -k <keywords>
 	if *flUseKeywords != "" {
 		tmpKeywords = splitKeywordsArg(*flUseKeywords)
-		if !inSlice("type", tmpKeywords) {
-			tmpKeywords = append([]string{"type"}, tmpKeywords...)
+		if !mtree.InKeywordSlice("type", tmpKeywords) {
+			tmpKeywords = append([]mtree.Keyword{"type"}, tmpKeywords...)
 		}
 	} else {
 		if *flTar != "" {
@@ -94,7 +94,7 @@ func app() error {
 	// -K <keywords>
 	if *flAddKeywords != "" {
 		for _, kw := range splitKeywordsArg(*flAddKeywords) {
-			if !inSlice(kw, tmpKeywords) {
+			if !mtree.InKeywordSlice(kw, tmpKeywords) {
 				tmpKeywords = append(tmpKeywords, kw)
 			}
 		}
@@ -115,7 +115,7 @@ func app() error {
 
 	// Check mutual exclusivity of keywords.
 	// TODO(cyphar): Abstract this inside keywords.go.
-	if inSlice("tar_time", currentKeywords) && inSlice("time", currentKeywords) {
+	if mtree.InKeywordSlice("tar_time", currentKeywords) && mtree.InKeywordSlice("time", currentKeywords) {
 		return fmt.Errorf("tar_time and time are mutually exclusive keywords")
 	}
 
@@ -124,7 +124,7 @@ func app() error {
 	var (
 		specDh       *mtree.DirectoryHierarchy
 		stateDh      *mtree.DirectoryHierarchy
-		specKeywords []string
+		specKeywords []mtree.Keyword
 	)
 
 	// -f <file>
@@ -153,7 +153,7 @@ func app() error {
 
 		if *flResultFormat == "json" {
 			// if they're asking for json, give it to them
-			data := map[string][]string{*flFile: specKeywords}
+			data := map[string][]mtree.Keyword{*flFile: specKeywords}
 			buf, err := json.MarshalIndent(data, "", "  ")
 			if err != nil {
 				return err
@@ -181,11 +181,11 @@ func app() error {
 		for _, keyword := range currentKeywords {
 			// As always, time is a special case.
 			// TODO: Fix that.
-			if (keyword == "time" && inSlice("tar_time", specKeywords)) || (keyword == "tar_time" && inSlice("time", specKeywords)) {
+			if (keyword == "time" && mtree.InKeywordSlice("tar_time", specKeywords)) || (keyword == "tar_time" && mtree.InKeywordSlice("time", specKeywords)) {
 				continue
 			}
 
-			if !inSlice(keyword, specKeywords) {
+			if !mtree.InKeywordSlice(keyword, specKeywords) {
 				return fmt.Errorf("cannot verify keywords not in mtree specification: %s\n", keyword)
 			}
 		}
@@ -395,19 +395,10 @@ func isTarSpec(spec *mtree.DirectoryHierarchy) bool {
 	return false
 }
 
-func splitKeywordsArg(str string) []string {
-	keywords := []string{}
+func splitKeywordsArg(str string) []mtree.Keyword {
+	keywords := []mtree.Keyword{}
 	for _, kw := range strings.Fields(strings.Replace(str, ",", " ", -1)) {
 		keywords = append(keywords, mtree.KeywordSynonym(kw))
 	}
 	return keywords
-}
-
-func inSlice(a string, list []string) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
-	}
-	return false
 }

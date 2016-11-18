@@ -76,7 +76,7 @@ func TestCheckKeywords(t *testing.T) {
 	}
 
 	// Check again, but only sha1 and mode. This ought to pass.
-	res, err = Check(dir, dh, []string{"sha1", "mode"})
+	res, err = Check(dir, dh, []Keyword{"sha1", "mode"})
 	if err != nil {
 		t.Fatal(err)
 	}
