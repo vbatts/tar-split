@@ -183,9 +183,23 @@ go get github.com/vbatts/go-mtree/cmd/gomtree
 or
 
 ```bash
-git clone git://github.com/vbatts/go-mtree.git
-cd ./go-mtree/cmd/gomtree
-go build .
+git clone git://github.com/vbatts/go-mtree.git $GOPATH/src/github.com/vbatts/go-mtree
+cd $GOPATH/src/github.com/vbatts/go-mtree
+go build ./cmd/gomtree
+```
+
+## Testing
+
+On Linux:
+```bash
+cd $GOPATH/src/github.com/vbatts/go-mtree
+make
+```
+
+On FreeBSD:
+```bash
+cd $GOPATH/src/github.com/vbatts/go-mtree
+gmake
 ```
 
 
