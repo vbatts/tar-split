@@ -30,9 +30,7 @@ vet: .vet
 cli.test: .cli.test
 
 .cli.test: $(BUILD) $(wildcard ./test/cli/*.sh)
-	@ for test in ./test/cli/*.sh ; do \
-	bash $$test $(CWD) ; \
-	done && touch $@
+	@go run ./test/cli.go ./test/cli/*.sh && touch $@
 
 .PHONY: build
 build: $(BUILD)

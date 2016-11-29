@@ -3,7 +3,7 @@ set -e
 #set -x
 
 name=$(basename $0)
-root=$1
+root="$(dirname $(dirname $(dirname $0)))"
 gomtree=$(readlink -f ${root}/gomtree)
 t=$(mktemp -d /tmp/go-mtree.XXXXXX)
 
