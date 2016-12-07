@@ -1,4 +1,4 @@
-// +build !cgo govis
+// +build !cvis
 
 package mtree
 
