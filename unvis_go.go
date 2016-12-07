@@ -206,12 +206,10 @@ func unvisRune(dst *[]byte, r rune, s *state, flags VisFlag) error {
 		}
 		*s = stateGround
 		return unvisValid
-	default:
-		*s = stateGround
-		return unvisErrSynbad
 	}
 
-	return nil
+	*s = stateGround
+	return unvisErrSynbad
 }
 
 type state int

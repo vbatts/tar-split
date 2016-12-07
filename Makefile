@@ -3,6 +3,7 @@ BUILD := gomtree
 CWD := $(shell pwd)
 SOURCE_FILES := $(shell find . -type f -name "*.go")
 CLEAN_FILES := *~
+TAGS := cvis
 
 default: build validation 
 
@@ -18,23 +19,29 @@ CLEAN_FILES += .test .test.tags
 	go test -v ./... && touch $@
 
 .test.tags: $(SOURCE_FILES)
-	go test -tags govis -v ./... && touch $@
+	for tag in $(TAGS) ; do go test -tags $$tag -v ./... ; done && touch $@
 
 .PHONY: lint
-lint: .lint
+lint: .lint .lint.tags
 
-CLEAN_FILES += .lint
+CLEAN_FILES += .lint .lint.tags
 
 .lint: $(SOURCE_FILES)
 	golint -set_exit_status ./... && touch $@
 
-.PHONY: vet
-vet: .vet
+.lint.tags: $(SOURCE_FILES)
+	for tag in $(TAGS) ; do golint -set_exit_status -tags $$tag -v ./... ; done && touch $@
 
-CLEAN_FILES += .vet
+.PHONY: vet
+vet: .vet .vet.tags
+
+CLEAN_FILES += .vet .vet.tags
 
 .vet: $(SOURCE_FILES)
 	go vet ./... && touch $@
+
+.vet.tags: $(SOURCE_FILES)
+	for tag in $(TAGS) ; do go vet -tags $$tag -v ./... ; done && touch $@
 
 .PHONY: cli.test
 cli.test: .cli.test
