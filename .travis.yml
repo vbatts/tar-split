@@ -16,3 +16,4 @@ install: true
 script:
   - make validation
   - make validation.tags
+  - make build.arches
