@@ -3,6 +3,7 @@ package mtree
 import (
 	"archive/tar"
 	"bytes"
+	"encoding/json"
 	"io"
 	"io/ioutil"
 	"os"
@@ -443,7 +444,12 @@ func TestTarCompare(t *testing.T) {
 			}
 
 			actualFailure = true
-			t.Logf("FAILURE: diff[%d] = %#v", i, delta)
+			buf, err := json.MarshalIndent(delta, "", "  ")
+			if err == nil {
+				t.Logf("FAILURE: diff[%d] = %s", i, string(buf))
+			} else {
+				t.Logf("FAILURE: diff[%d] = %#v", i, delta)
+			}
 		}
 
 		if actualFailure {
