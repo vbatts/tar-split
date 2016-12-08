@@ -4,6 +4,7 @@ CWD := $(shell pwd)
 SOURCE_FILES := $(shell find . -type f -name "*.go")
 CLEAN_FILES := *~
 TAGS := cvis
+ARCHES := linux,386 linux,amd64 linux,arm linux,arm64 openbsd,amd64 windows,amd64 darwin,amd64
 
 default: build validation 
 
@@ -59,6 +60,20 @@ build: $(BUILD)
 
 $(BUILD): $(SOURCE_FILES)
 	go build ./cmd/$(BUILD)
+
+./bin:
+	mkdir -p $@
+
+CLEAN_FILES += bin
+
+build.arches: ./bin
+	@set -e ;\
+	for pair in $(ARCHES); do \
+	p=$$(echo $$pair | cut -d , -f 1);\
+	a=$$(echo $$pair | cut -d , -f 2);\
+	echo "Building $$p/$$a ...";\
+	GOOS=$$p GOARCH=$$a go build -o ./bin/gomtree.$$p.$$a ./cmd/gomtree/ ;\
+	done
 
 clean:
 	rm -rf $(BUILD) $(CLEAN_FILES)
