@@ -236,7 +236,7 @@ func app() error {
 		}
 	} else {
 		// with a root directory
-		stateDh, err = mtree.Walk(rootPath, excludes, currentKeywords)
+		stateDh, err = mtree.Walk(rootPath, excludes, currentKeywords, nil)
 		if err != nil {
 			return err
 		}

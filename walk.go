@@ -26,8 +26,11 @@ var defaultSetKeywords = []KeyVal{"type=file", "nlink=1", "flags=none", "mode=06
 // Walk from root directory and assemble the DirectoryHierarchy. excludes
 // provided are used to skip paths. keywords are the set to collect from the
 // walked paths. The recommended default list is DefaultKeywords.
-func Walk(root string, excludes []ExcludeFunc, keywords []Keyword) (*DirectoryHierarchy, error) {
-	creator := dhCreator{DH: &DirectoryHierarchy{}}
+func Walk(root string, excludes []ExcludeFunc, keywords []Keyword, fsEval FsEval) (*DirectoryHierarchy, error) {
+	if fsEval == nil {
+		fsEval = DefaultFsEval{}
+	}
+	creator := dhCreator{DH: &DirectoryHierarchy{}, fs: fsEval}
 	// insert signature and metadata comments first (user, machine, tree, date)
 	for _, e := range signatureEntries(root) {
 		e.Pos = len(creator.DH.Entries)
@@ -88,7 +91,7 @@ func Walk(root string, excludes []ExcludeFunc, keywords []Keyword) (*DirectoryHi
 					err := func() error {
 						var r io.Reader
 						if info.Mode().IsRegular() {
-							fh, err := os.Open(path)
+							fh, err := creator.fs.Open(path)
 							if err != nil {
 								return err
 							}
@@ -99,7 +102,7 @@ func Walk(root string, excludes []ExcludeFunc, keywords []Keyword) (*DirectoryHi
 						if !ok {
 							return fmt.Errorf("Unknown keyword %q for file %q", keyword, path)
 						}
-						if str, err := keywordFunc(path, info, r); err == nil && str != "" {
+						if str, err := creator.fs.KeywordFunc(keywordFunc)(path, info, r); err == nil && str != "" {
 							e.Keywords = append(e.Keywords, str)
 						} else if err != nil {
 							return err
@@ -119,7 +122,7 @@ func Walk(root string, excludes []ExcludeFunc, keywords []Keyword) (*DirectoryHi
 					err := func() error {
 						var r io.Reader
 						if info.Mode().IsRegular() {
-							fh, err := os.Open(path)
+							fh, err := creator.fs.Open(path)
 							if err != nil {
 								return err
 							}
@@ -130,7 +133,7 @@ func Walk(root string, excludes []ExcludeFunc, keywords []Keyword) (*DirectoryHi
 						if !ok {
 							return fmt.Errorf("Unknown keyword %q for file %q", keyword, path)
 						}
-						str, err := keywordFunc(path, info, r)
+						str, err := creator.fs.KeywordFunc(keywordFunc)(path, info, r)
 						if err != nil {
 							return err
 						}
@@ -177,7 +180,7 @@ func Walk(root string, excludes []ExcludeFunc, keywords []Keyword) (*DirectoryHi
 			err := func() error {
 				var r io.Reader
 				if info.Mode().IsRegular() {
-					fh, err := os.Open(path)
+					fh, err := creator.fs.Open(path)
 					if err != nil {
 						return err
 					}
@@ -188,7 +191,7 @@ func Walk(root string, excludes []ExcludeFunc, keywords []Keyword) (*DirectoryHi
 				if !ok {
 					return fmt.Errorf("Unknown keyword %q for file %q", keyword, path)
 				}
-				str, err := keywordFunc(path, info, r)
+				str, err := creator.fs.KeywordFunc(keywordFunc)(path, info, r)
 				if err != nil {
 					return err
 				}
@@ -227,7 +230,7 @@ func Walk(root string, excludes []ExcludeFunc, keywords []Keyword) (*DirectoryHi
 // large directories Walk can be inefficient.
 // Walk does not follow symbolic links.
 func startWalk(c *dhCreator, root string, walkFn filepath.WalkFunc) error {
-	info, err := os.Lstat(root)
+	info, err := c.fs.Lstat(root)
 	if err != nil {
 		return walkFn(root, nil, err)
 	}
@@ -248,14 +251,14 @@ func walk(c *dhCreator, path string, info os.FileInfo, walkFn filepath.WalkFunc)
 		return nil
 	}
 
-	names, err := readOrderedDirNames(path)
+	names, err := readOrderedDirNames(c, path)
 	if err != nil {
 		return walkFn(path, info, err)
 	}
 
 	for _, name := range names {
 		filename := filepath.Join(path, name)
-		fileInfo, err := os.Lstat(filename)
+		fileInfo, err := c.fs.Lstat(filename)
 		if err != nil {
 			if err := walkFn(filename, fileInfo, err); err != nil && err != filepath.SkipDir {
 				return err
@@ -282,13 +285,8 @@ func walk(c *dhCreator, path string, info os.FileInfo, walkFn filepath.WalkFunc)
 
 // readOrderedDirNames reads the directory and returns a sorted list of all
 // entries with non-directories first, followed by directories.
-func readOrderedDirNames(dirname string) ([]string, error) {
-	f, err := os.Open(dirname)
-	if err != nil {
-		return nil, err
-	}
-	infos, err := f.Readdir(-1)
-	f.Close()
+func readOrderedDirNames(c *dhCreator, dirname string) ([]string, error) {
+	infos, err := c.fs.Readdir(dirname)
 	if err != nil {
 		return nil, err
 	}

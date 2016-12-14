@@ -7,7 +7,7 @@ import (
 )
 
 func TestWalk(t *testing.T) {
-	dh, err := Walk(".", nil, append(DefaultKeywords, "sha1"))
+	dh, err := Walk(".", nil, append(DefaultKeywords, "sha1"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,7 +37,7 @@ func TestWalk(t *testing.T) {
 }
 
 func TestWalkDirectory(t *testing.T) {
-	dh, err := Walk(".", []ExcludeFunc{ExcludeNonDirectories}, []Keyword{"type"})
+	dh, err := Walk(".", []ExcludeFunc{ExcludeNonDirectories}, []Keyword{"type"}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

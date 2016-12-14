@@ -26,7 +26,7 @@ func ExampleStreamer() {
 		// handle error ...
 	}
 
-	res, err := Check("/tmp/dir/", dh, nil)
+	res, err := Check("/tmp/dir/", dh, nil, nil)
 	if err != nil {
 		// handle error ...
 	}
@@ -145,7 +145,7 @@ func TestArchiveCreation(t *testing.T) {
 	}
 
 	// Test the tar manifest against the actual directory
-	res, err := Check("./testdata/collection", tdh, []Keyword{"sha1"})
+	res, err := Check("./testdata/collection", tdh, []Keyword{"sha1"}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -170,7 +170,7 @@ func TestArchiveCreation(t *testing.T) {
 	}
 
 	// Validate the directory manifest against the archive
-	dh, err := Walk("./testdata/collection", nil, []Keyword{"sha1"})
+	dh, err := Walk("./testdata/collection", nil, []Keyword{"sha1"}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -224,7 +224,7 @@ func TestTreeTraversal(t *testing.T) {
 	}
 
 	// top-level "." directory will contain contents of traversal.tar
-	res, err = Check("./testdata/.", tdh, []Keyword{"sha1"})
+	res, err = Check("./testdata/.", tdh, []Keyword{"sha1"}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -262,7 +262,7 @@ func TestTreeTraversal(t *testing.T) {
 	}
 
 	// Implied top-level "." directory will contain the contents of singlefile.tar
-	res, err = Check("./testdata/.", tdh, []Keyword{"sha1"})
+	res, err = Check("./testdata/.", tdh, []Keyword{"sha1"}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
