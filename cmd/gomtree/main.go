@@ -269,13 +269,19 @@ func app() error {
 			if isTarSpec(specDh) || *flTar != "" {
 				res = filterMissingKeywords(res)
 			}
-			//if len(res) > 0 {
-			//return fmt.Errorf("unexpected missing keywords: %d", len(res))
-			//}
 
 			out := formatFunc(res)
 			if _, err := os.Stdout.Write([]byte(out)); err != nil {
 				return err
+			}
+
+			// TODO: This should be a flag. Allowing files to be added and
+			//       removed and still returning "it's all good" is simply
+			//       unsafe IMO.
+			for _, diff := range res {
+				if diff.Type() == mtree.Modified {
+					return fmt.Errorf("mainfest validation failed")
+				}
 			}
 		}
 	} else {
@@ -289,13 +295,7 @@ var formats = map[string]func([]mtree.InodeDelta) string{
 	"bsd": func(d []mtree.InodeDelta) string {
 		var buffer bytes.Buffer
 		for _, delta := range d {
-			if delta.Type() == mtree.Modified {
-				fmt.Fprintln(&buffer, delta)
-			} else if delta.Type() == mtree.Missing {
-				fmt.Fprintln(&buffer, delta)
-			} else if delta.Type() == mtree.Extra {
-				fmt.Fprintln(&buffer, delta)
-			}
+			fmt.Fprintln(&buffer, delta)
 		}
 		return buffer.String()
 	},
