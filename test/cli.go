@@ -17,10 +17,11 @@ func main() {
 		cmd.Stdout = os.Stdout
 		if err := cmd.Run(); err != nil {
 			failed++
+			fmt.Fprintf(os.Stderr, "FAILED: %s\n", arg)
 		}
 	}
 	if failed > 0 {
-		fmt.Printf("%d FAILED tests\n", failed)
+		fmt.Fprintf(os.Stderr, "%d FAILED tests\n", failed)
 		os.Exit(1)
 	}
 }
