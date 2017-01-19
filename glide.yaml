@@ -1,0 +1,5 @@
+package: .
+import:
+- package: golang.org/x/crypto
+  subpackages:
+  - ripemd160
