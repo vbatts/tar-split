@@ -6,7 +6,7 @@ root="$(dirname $(dirname $(dirname $0)))"
 gomtree=$(readlink -f ${root}/gomtree)
 t=$(mktemp -d /tmp/go-mtree.XXXXXX)
 
-setfattr -n user.has_xattrs -v "" "${t}" || exit 0
+setfattr -n user.has.xattrs -v "true" "${t}" || exit 0
 
 echo "[${name}] Running in ${t}"
 
