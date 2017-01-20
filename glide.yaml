@@ -1,4 +1,7 @@
-package: .
+package: github.com/vbatts/go-mtree
+homepage: https://github.com/vbatts/go-mtree
+license: BSD-3-Clause
+description: File systems verification utility and library, in likeness of mtree(8)
 import:
 - package: golang.org/x/crypto
   subpackages:
