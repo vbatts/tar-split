@@ -1,0 +1,8 @@
+hash: 90db837f2d27de645d9f48fa1be54b4f9d83f0cb9343ce98fa61e1b55b2828b5
+updated: 2017-01-19T17:18:33.464668206-05:00
+imports:
+- name: golang.org/x/crypto
+  version: b8a2a83acfe6e6770b75de42d5ff4c67596675c0
+  subpackages:
+  - ripemd160
+testImports: []
