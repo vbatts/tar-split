@@ -8,8 +8,8 @@ sudo: false
 before_install:
   - git config --global url."https://".insteadOf git://
   - go get -u github.com/golang/lint/golint
+  - go get -u github.com/Masterminds/glide
   - mkdir -p $GOPATH/src/github.com/vbatts && ln -sf $(pwd) $GOPATH/src/github.com/vbatts/go-mtree
-  - go get ./...
 
 install: true
 

@@ -1,5 +1,6 @@
 
 BUILD := gomtree
+BUILDPATH := github.com/vbatts/go-mtree/cmd/gomtree
 CWD := $(shell pwd)
 SOURCE_FILES := $(shell find . -type f -name "*.go")
 CLEAN_FILES := *~
@@ -20,10 +21,10 @@ test: .test
 CLEAN_FILES += .test .test.tags
 
 .test: $(SOURCE_FILES)
-	go test -v ./... && touch $@
+	go test -v $$(glide novendor) && touch $@
 
 .test.tags: $(SOURCE_FILES)
-	set -e ; for tag in $(TAGS) ; do go test -tags $$tag -v ./... ; done && touch $@
+	set -e ; for tag in $(TAGS) ; do go test -tags $$tag -v $$(glide novendor) ; done && touch $@
 
 .PHONY: lint
 lint: .lint
@@ -31,7 +32,7 @@ lint: .lint
 CLEAN_FILES += .lint
 
 .lint: $(SOURCE_FILES)
-	golint -set_exit_status ./... && touch $@
+	set -e ; for dir in $$(glide novendor) ; do golint -set_exit_status $$dir ; done && touch $@
 
 .PHONY: vet
 vet: .vet .vet.tags
@@ -39,10 +40,10 @@ vet: .vet .vet.tags
 CLEAN_FILES += .vet .vet.tags
 
 .vet: $(SOURCE_FILES)
-	go vet ./... && touch $@
+	go vet $$(glide novendor) && touch $@
 
 .vet.tags: $(SOURCE_FILES)
-	set -e ; for tag in $(TAGS) ; do go vet -tags $$tag -v ./... ; done && touch $@
+	set -e ; for tag in $(TAGS) ; do go vet -tags $$tag -v $$(glide novendor) ; done && touch $@
 
 .PHONY: cli.test
 cli.test: .cli.test
@@ -59,7 +60,7 @@ CLEAN_FILES += .cli.test .cli.test.tags
 build: $(BUILD)
 
 $(BUILD): $(SOURCE_FILES)
-	go build ./cmd/$(BUILD)
+	go build -o $(BUILD) $(BUILDPATH)
 
 ./bin:
 	mkdir -p $@
@@ -72,7 +73,7 @@ build.arches: ./bin
 	p=$$(echo $$pair | cut -d , -f 1);\
 	a=$$(echo $$pair | cut -d , -f 2);\
 	echo "Building $$p/$$a ...";\
-	GOOS=$$p GOARCH=$$a go build -o ./bin/gomtree.$$p.$$a ./cmd/gomtree/ ;\
+	GOOS=$$p GOARCH=$$a go build -o ./bin/gomtree.$$p.$$a $(BUILDPATH) ;\
 	done
 
 clean:
