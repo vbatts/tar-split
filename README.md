@@ -1,6 +1,7 @@
 # tar-split
 
 [![Build Status](https://travis-ci.org/vbatts/tar-split.svg?branch=master)](https://travis-ci.org/vbatts/tar-split)
+[![Go Report Card](https://goreportcard.com/badge/github.com/vbatts/tar-split)](https://goreportcard.com/report/github.com/vbatts/tar-split)
 
 Pristinely disassembling a tar archive, and stashing needed raw bytes and offsets to reassemble a validating original archive.
 
