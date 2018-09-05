@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"internal/testenv"
 	"io"
 	"io/ioutil"
 	"math"
@@ -16,6 +15,7 @@ import (
 	"path"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -260,8 +260,10 @@ func TestFileInfoHeaderDir(t *testing.T) {
 }
 
 func TestFileInfoHeaderSymlink(t *testing.T) {
-	testenv.MustHaveSymlink(t)
-
+	switch runtime.GOOS {
+	case "android", "nacl", "plan9", "windows":
+		t.Skip("symlinks not supported")
+	}
 	tmpdir, err := ioutil.TempDir("", "TestFileInfoHeaderSymlink")
 	if err != nil {
 		t.Fatal(err)

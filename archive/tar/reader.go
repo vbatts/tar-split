@@ -26,6 +26,9 @@ type Reader struct {
 	// It is only the responsibility of every exported method of Reader to
 	// ensure that this error is sticky.
 	err error
+
+	RawAccounting bool          // Whether to enable the access needed to reassemble the tar from raw bytes. Some performance/memory hit for this.
+	rawBytes      *bytes.Buffer // last raw bits
 }
 
 type fileReader interface {
@@ -33,6 +36,25 @@ type fileReader interface {
 	fileState
 
 	WriteTo(io.Writer) (int64, error)
+}
+
+// RawBytes accesses the raw bytes of the archive, apart from the file payload itself.
+// This includes the header and padding.
+//
+// This call resets the current rawbytes buffer
+//
+// Only when RawAccounting is enabled, otherwise this returns nil
+func (tr *Reader) RawBytes() []byte {
+	if !tr.RawAccounting {
+		return nil
+	}
+	if tr.rawBytes == nil {
+		tr.rawBytes = bytes.NewBuffer(nil)
+	}
+	defer tr.rawBytes.Reset() // if we've read them, then flush them.
+
+	return tr.rawBytes.Bytes()
+
 }
 
 // NewReader creates a new Reader reading from r.
@@ -58,6 +80,14 @@ func (tr *Reader) next() (*Header, error) {
 	var paxHdrs map[string]string
 	var gnuLongName, gnuLongLink string
 
+	if tr.RawAccounting {
+		if tr.rawBytes == nil {
+			tr.rawBytes = bytes.NewBuffer(nil)
+		} else {
+			tr.rawBytes.Reset()
+		}
+	}
+
 	// Externally, Next iterates through the tar archive as if it is a series of
 	// files. Internally, the tar format often uses fake "files" to add meta
 	// data that describes the next file. These meta data "files" should not
@@ -66,11 +96,15 @@ func (tr *Reader) next() (*Header, error) {
 	format := FormatUSTAR | FormatPAX | FormatGNU
 	for {
 		// Discard the remainder of the file and any padding.
-		if err := discard(tr.r, tr.curr.PhysicalRemaining()); err != nil {
+		if err := discard(tr, tr.curr.PhysicalRemaining()); err != nil {
 			return nil, err
 		}
-		if _, err := tryReadFull(tr.r, tr.blk[:tr.pad]); err != nil {
+		n, err := tryReadFull(tr.r, tr.blk[:tr.pad])
+		if err != nil {
 			return nil, err
+		}
+		if tr.RawAccounting {
+			tr.rawBytes.Write(tr.blk[:n])
 		}
 		tr.pad = 0
 
@@ -107,6 +141,10 @@ func (tr *Reader) next() (*Header, error) {
 			realname, err := ioutil.ReadAll(tr)
 			if err != nil {
 				return nil, err
+			}
+
+			if tr.RawAccounting {
+				tr.rawBytes.Write(realname)
 			}
 
 			var p parser
@@ -298,6 +336,12 @@ func parsePAX(r io.Reader) (map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	// leaving this function for io.Reader makes it more testable
+	if tr, ok := r.(*Reader); ok && tr.RawAccounting {
+		if _, err = tr.rawBytes.Write(buf); err != nil {
+			return nil, err
+		}
+	}
 	sbuf := string(buf)
 
 	// For GNU PAX sparse format 0.0 support.
@@ -342,11 +386,20 @@ func parsePAX(r io.Reader) (map[string]string, error) {
 //	* At least 2 blocks of zeros are read.
 func (tr *Reader) readHeader() (*Header, *block, error) {
 	// Two blocks of zero bytes marks the end of the archive.
-	if _, err := io.ReadFull(tr.r, tr.blk[:]); err != nil {
+	n, err := io.ReadFull(tr.r, tr.blk[:])
+	if tr.RawAccounting && (err == nil || err == io.EOF) {
+		tr.rawBytes.Write(tr.blk[:n])
+	}
+	if err != nil {
 		return nil, nil, err // EOF is okay here; exactly 0 bytes read
 	}
+
 	if bytes.Equal(tr.blk[:], zeroBlock[:]) {
-		if _, err := io.ReadFull(tr.r, tr.blk[:]); err != nil {
+		n, err = io.ReadFull(tr.r, tr.blk[:])
+		if tr.RawAccounting && (err == nil || err == io.EOF) {
+			tr.rawBytes.Write(tr.blk[:n])
+		}
+		if err != nil {
 			return nil, nil, err // EOF is okay here; exactly 1 block of zeros read
 		}
 		if bytes.Equal(tr.blk[:], zeroBlock[:]) {
@@ -496,6 +549,9 @@ func (tr *Reader) readOldGNUSparseMap(hdr *Header, blk *block) (sparseDatas, err
 			// There are more entries. Read an extension header and parse its entries.
 			if _, err := mustReadFull(tr.r, blk[:]); err != nil {
 				return nil, err
+			}
+			if tr.RawAccounting {
+				tr.rawBytes.Write(blk[:])
 			}
 			s = blk.Sparse()
 			continue
@@ -828,12 +884,20 @@ func tryReadFull(r io.Reader, b []byte) (n int, err error) {
 }
 
 // discard skips n bytes in r, reporting an error if unable to do so.
-func discard(r io.Reader, n int64) error {
+func discard(tr *Reader, n int64) error {
+	var seekSkipped, copySkipped int64
+	var err error
+	r := tr.r
+	if tr.RawAccounting {
+
+		copySkipped, err = io.CopyN(tr.rawBytes, tr.r, n)
+		goto out
+	}
+
 	// If possible, Seek to the last byte before the end of the data section.
 	// Do this because Seek is often lazy about reporting errors; this will mask
 	// the fact that the stream may be truncated. We can rely on the
 	// io.CopyN done shortly afterwards to trigger any IO errors.
-	var seekSkipped int64 // Number of bytes skipped via Seek
 	if sr, ok := r.(io.Seeker); ok && n > 1 {
 		// Not all io.Seeker can actually Seek. For example, os.Stdin implements
 		// io.Seeker, but calling Seek always returns an error and performs
@@ -850,7 +914,8 @@ func discard(r io.Reader, n int64) error {
 		}
 	}
 
-	copySkipped, err := io.CopyN(ioutil.Discard, r, n-seekSkipped)
+	copySkipped, err = io.CopyN(ioutil.Discard, r, n-seekSkipped)
+out:
 	if err == io.EOF && seekSkipped+copySkipped < n {
 		err = io.ErrUnexpectedEOF
 	}
