@@ -37,6 +37,12 @@ func CommandAsm(c *cli.Context) {
 		outputStream = fh
 	}
 
+	if c.Bool("compress") {
+		zipper := gzip.NewWriter(outputStream)
+		defer zipper.Close()
+		outputStream = zipper
+	}
+
 	// Get the tar metadata reader
 	mf, err := os.Open(c.String("input"))
 	if err != nil {

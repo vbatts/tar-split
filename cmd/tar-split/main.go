@@ -69,6 +69,11 @@ func main() {
 					Value: "",
 					Usage: "relative path of extracted tar",
 				},
+				cli.BoolFlag{
+					Name:  "compress",
+					Usage: "gzip compress the output",
+					// defaults to false
+				},
 			},
 		},
 		{
