@@ -73,7 +73,7 @@ func (f *formatter) formatString(b []byte, s string) {
 	// in the V7 path field as a directory even though the full path
 	// recorded elsewhere (e.g., via PAX record) contains no trailing slash.
 	if len(s) > len(b) && b[len(b)-1] == '/' {
-		n := len(strings.TrimRight(s[:len(b)], "/"))
+		n := len(strings.TrimRightFunc(s[:len(b)], func(r rune) bool { return r == '/' }))
 		b[n] = 0 // Replace trailing slash with NUL terminator
 	}
 }
@@ -161,7 +161,7 @@ func (p *parser) parseOctal(b []byte) int64 {
 	// spaces or NULs.
 	// So we remove leading and trailing NULs and spaces to
 	// be sure.
-	b = bytes.Trim(b, " \x00")
+	b = bytes.TrimFunc(b, func(r rune) bool { return r == ' ' || r == 0 })
 
 	if len(b) == 0 {
 		return 0
@@ -216,7 +216,7 @@ func parsePAXTime(s string) (time.Time, error) {
 	}
 
 	// Parse the nanoseconds.
-	if strings.Trim(sn, "0123456789") != "" {
+	if strings.TrimFunc(sn, func(r rune) bool { return r >= 0x30 && r <= 0x39 }) != "" {
 		return time.Time{}, ErrHeader
 	}
 	if len(sn) < maxNanoSecondDigits {
@@ -246,7 +246,7 @@ func formatPAXTime(ts time.Time) (s string) {
 		secs = -(secs + 1)     // Add a second to secs
 		nsecs = -(nsecs - 1E9) // Take that second away from nsecs
 	}
-	return strings.TrimRight(fmt.Sprintf("%s%d.%09d", sign, secs, nsecs), "0")
+	return strings.TrimRightFunc(fmt.Sprintf("%s%d.%09d", sign, secs, nsecs), func(r rune) bool { return r == '0' })
 }
 
 // parsePAXRecord parses the input PAX record string into a key-value pair.
