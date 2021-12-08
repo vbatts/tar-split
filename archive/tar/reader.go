@@ -68,15 +68,25 @@ func NewReader(r io.Reader) *Reader {
 //
 // io.EOF is returned at the end of the input.
 func (tr *Reader) Next() (*Header, error) {
+	return tr.NextHeader(nil)
+}
+
+// NextHeader advances to the next entry in the tar archive, attempting
+// to reuse the passed-in Header.
+// The Header.Size determines how many bytes can be read for the next file.
+// Any remaining data in the current file is automatically discarded.
+//
+// io.EOF is returned at the end of the input.
+func (tr *Reader) NextHeader(h *Header) (*Header, error) {
 	if tr.err != nil {
 		return nil, tr.err
 	}
-	hdr, err := tr.next()
+	hdr, err := tr.nextHeader(h)
 	tr.err = err
 	return hdr, err
 }
 
-func (tr *Reader) next() (*Header, error) {
+func (tr *Reader) nextHeader(h *Header) (*Header, error) {
 	var paxHdrs map[string]string
 	var gnuLongName, gnuLongLink string
 
@@ -108,7 +118,7 @@ func (tr *Reader) next() (*Header, error) {
 		}
 		tr.pad = 0
 
-		hdr, rawHdr, err := tr.readHeader()
+		hdr, rawHdr, err := tr.readHeader(h)
 		if err != nil {
 			return nil, err
 		}
@@ -127,13 +137,14 @@ func (tr *Reader) next() (*Header, error) {
 			}
 			if hdr.Typeflag == TypeXGlobalHeader {
 				mergePAX(hdr, paxHdrs)
-				return &Header{
+				*hdr = Header{
 					Name:       hdr.Name,
 					Typeflag:   hdr.Typeflag,
 					Xattrs:     hdr.Xattrs,
 					PAXRecords: hdr.PAXRecords,
 					Format:     format,
-				}, nil
+				}
+				return hdr, nil
 			}
 			continue // This is a meta header affecting the next header
 		case TypeGNULongName, TypeGNULongLink:
@@ -384,7 +395,7 @@ func parsePAX(r io.Reader) (map[string]string, error) {
 //	* Exactly 0 bytes are read and EOF is hit.
 //	* Exactly 1 block of zeros is read and EOF is hit.
 //	* At least 2 blocks of zeros are read.
-func (tr *Reader) readHeader() (*Header, *block, error) {
+func (tr *Reader) readHeader(h *Header) (*Header, *block, error) {
 	// Two blocks of zero bytes marks the end of the archive.
 	n, err := io.ReadFull(tr.r, tr.blk[:])
 	if tr.RawAccounting && (err == nil || err == io.EOF) {
@@ -415,7 +426,13 @@ func (tr *Reader) readHeader() (*Header, *block, error) {
 	}
 
 	var p parser
-	hdr := new(Header)
+	var hdr *Header
+	if h != nil {
+		*h = Header{}
+		hdr = h
+	} else {
+		hdr = new(Header)
+	}
 
 	// Unpack the V7 header.
 	v7 := tr.blk.V7()
