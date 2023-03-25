@@ -199,7 +199,9 @@ func BenchmarkGetPut(b *testing.B) {
 						b.Fatal(err)
 					}
 				}
-				fh.Sync()
+				if err := fh.Sync(); err != nil {
+					b.Fatal(err)
+				}
 
 				up := NewJSONUnpacker(fh)
 				for {

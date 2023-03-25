@@ -29,9 +29,14 @@ func BenchmarkUpstreamTar(b *testing.B) {
 				fh.Close()
 				b.Fatal(err)
 			}
-			io.Copy(ioutil.Discard, tr)
+			_, err = io.Copy(ioutil.Discard, tr)
+			if err != nil {
+				b.Fatal(err)
+			}
 		}
-		fh.Close()
+		if err := fh.Close(); err != nil {
+			b.Fatal(err)
+		}
 	}
 }
 
@@ -52,9 +57,14 @@ func BenchmarkOurTarNoAccounting(b *testing.B) {
 				fh.Close()
 				b.Fatal(err)
 			}
-			io.Copy(ioutil.Discard, tr)
+			_, err = io.Copy(ioutil.Discard, tr)
+			if err != nil {
+				b.Fatal(err)
+			}
 		}
-		fh.Close()
+		if err := fh.Close(); err != nil {
+			b.Fatal(err)
+		}
 	}
 }
 func BenchmarkOurTarYesAccounting(b *testing.B) {
@@ -76,9 +86,14 @@ func BenchmarkOurTarYesAccounting(b *testing.B) {
 				fh.Close()
 				b.Fatal(err)
 			}
-			io.Copy(ioutil.Discard, tr)
+			_, err = io.Copy(ioutil.Discard, tr)
+			if err != nil {
+				b.Fatal(err)
+			}
 			_ = tr.RawBytes()
 		}
-		fh.Close()
+		if err := fh.Close(); err != nil {
+			b.Fatal(err)
+		}
 	}
 }
