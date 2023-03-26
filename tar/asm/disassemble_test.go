@@ -23,7 +23,6 @@ func TestLargeJunkPadding(t *testing.T) {
 		tw := tar.NewWriter(pW)
 		if err := tw.Close(); err != nil {
 			pW.CloseWithError(err)
-			t.Fatal(err)
 			return
 		}
 
@@ -35,7 +34,6 @@ func TestLargeJunkPadding(t *testing.T) {
 		devZero, err := os.Open("/dev/zero")
 		if err != nil {
 			pW.CloseWithError(err)
-			t.Fatal(err)
 			return
 		}
 		defer devZero.Close()
@@ -45,7 +43,6 @@ func TestLargeJunkPadding(t *testing.T) {
 			}
 			if _, err := io.CopyN(pW, devZero, junkChunkSize); err != nil {
 				pW.CloseWithError(err)
-				t.Fatal(err)
 				return
 			}
 		}

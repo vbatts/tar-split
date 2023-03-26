@@ -833,8 +833,8 @@ func Benchmark(b *testing.B) {
 			// Write the archive to a byte buffer.
 			tw := NewWriter(&buf)
 			for _, file := range v.files {
-				tw.WriteHeader(file.hdr)
-				tw.Write(file.body)
+				_ = tw.WriteHeader(file.hdr)
+				_, _ = tw.Write(file.body)
 			}
 			tw.Close()
 			b.Run(v.label, func(b *testing.B) {
