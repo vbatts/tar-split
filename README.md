@@ -10,9 +10,9 @@ Pristinely disassembling a tar archive, and stashing needed raw bytes and offset
 
 Code API for libraries provided by `tar-split`:
 
-* https://godoc.org/github.com/vbatts/tar-split/tar/asm
-* https://godoc.org/github.com/vbatts/tar-split/tar/storage
-* https://godoc.org/github.com/vbatts/tar-split/archive/tar
+* [github.com/vbatts/tar-split/tar/asm](https://pkg.go.dev/github.com/vbatts/tar-split/tar/asm)
+* [github.com/vbatts/tar-split/tar/storage](https://pkg.go.dev/github.com/vbatts/tar-split/tar/storage)
+* [github.com/vbatts/tar-split/archive/tar](https://pkg.go.dev/github.com/vbatts/tar-split/archive/tar)
 
 ## Install
 
