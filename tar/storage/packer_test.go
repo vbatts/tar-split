@@ -11,17 +11,17 @@ import (
 
 func TestDuplicateFail(t *testing.T) {
 	e := []Entry{
-		Entry{
+		{
 			Type:    FileType,
 			Name:    "./hurr.txt",
 			Payload: []byte("abcde"),
 		},
-		Entry{
+		{
 			Type:    FileType,
 			Name:    "./hurr.txt",
 			Payload: []byte("deadbeef"),
 		},
-		Entry{
+		{
 			Type:    FileType,
 			Name:    "hurr.txt", // slightly different path, same file though
 			Payload: []byte("deadbeef"),
@@ -44,20 +44,20 @@ func TestDuplicateFail(t *testing.T) {
 
 func TestJSONPackerUnpacker(t *testing.T) {
 	e := []Entry{
-		Entry{
+		{
 			Type:    SegmentType,
 			Payload: []byte("how"),
 		},
-		Entry{
+		{
 			Type:    SegmentType,
 			Payload: []byte("y'all"),
 		},
-		Entry{
+		{
 			Type:    FileType,
 			Name:    "./hurr.txt",
 			Payload: []byte("deadbeef"),
 		},
-		Entry{
+		{
 			Type:    SegmentType,
 			Payload: []byte("doin"),
 		},
@@ -105,20 +105,20 @@ func TestJSONPackerUnpacker(t *testing.T) {
 // bytes uncompressed vs 138 bytes compressed.
 func TestGzip(t *testing.T) {
 	e := []Entry{
-		Entry{
+		{
 			Type:    SegmentType,
 			Payload: []byte("how"),
 		},
-		Entry{
+		{
 			Type:    SegmentType,
 			Payload: []byte("y'all"),
 		},
-		Entry{
+		{
 			Type:    FileType,
 			Name:    "./hurr.txt",
 			Payload: []byte("deadbeef"),
 		},
-		Entry{
+		{
 			Type:    SegmentType,
 			Payload: []byte("doin"),
 		},
@@ -165,20 +165,20 @@ func TestGzip(t *testing.T) {
 
 func BenchmarkGetPut(b *testing.B) {
 	e := []Entry{
-		Entry{
+		{
 			Type:    SegmentType,
 			Payload: []byte("how"),
 		},
-		Entry{
+		{
 			Type:    SegmentType,
 			Payload: []byte("y'all"),
 		},
-		Entry{
+		{
 			Type:    FileType,
 			Name:    "./hurr.txt",
 			Payload: []byte("deadbeef"),
 		},
-		Entry{
+		{
 			Type:    SegmentType,
 			Payload: []byte("doin"),
 		},
