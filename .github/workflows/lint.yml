@@ -27,9 +27,6 @@ jobs:
           GOPATH: /home/runner/work/tar-split/tar-split/go
         run: |
           set -x
-          #curl -sSL https://github.com/magefile/mage/releases/download/v1.14.0/mage_1.14.0_Linux-64bit.tar.gz | tar -xzv mage && mv mage $GOPATH/bin/
-          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.51.2
           export PATH=$GOPATH/bin:$PATH
           cd go/src/github.com/vbatts/tar-split
-          golangci-lint run
-          #go run mage.go -v lint
+          go run mage.go -v lint

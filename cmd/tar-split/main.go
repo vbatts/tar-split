@@ -5,14 +5,15 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
-	"github.com/vbatts/tar-split/version"
 )
+
+var Version = "v0.11.3"
 
 func main() {
 	app := cli.NewApp()
 	app.Name = "tar-split"
 	app.Usage = "tar assembly and disassembly utility"
-	app.Version = version.VERSION
+	app.Version = Version
 	app.Author = "Vincent Batts"
 	app.Email = "vbatts@hashbangbash.com"
 	app.Action = cli.ShowAppHelp
