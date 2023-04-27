@@ -221,9 +221,11 @@ func (s sparseEntry) endOffset() int64 { return s.Offset + s.Length }
 // that the file has no data in it, which is rather odd.
 //
 // As an example, if the underlying raw file contains the 10-byte data:
+//
 //	var compactFile = "abcdefgh"
 //
 // And the sparse map has the following entries:
+//
 //	var spd sparseDatas = []sparseEntry{
 //		{Offset: 2,  Length: 5},  // Data fragment for 2..6
 //		{Offset: 18, Length: 3},  // Data fragment for 18..20
@@ -235,6 +237,7 @@ func (s sparseEntry) endOffset() int64 { return s.Offset + s.Length }
 //	}
 //
 // Then the content of the resulting sparse file with a Header.Size of 25 is:
+//
 //	var sparseFile = "\x00"*2 + "abcde" + "\x00"*11 + "fgh" + "\x00"*4
 type (
 	sparseDatas []sparseEntry
@@ -293,9 +296,9 @@ func alignSparseEntries(src []sparseEntry, size int64) []sparseEntry {
 // The input must have been already validated.
 //
 // This function mutates src and returns a normalized map where:
-//	* adjacent fragments are coalesced together
-//	* only the last fragment may be empty
-//	* the endOffset of the last fragment is the total size
+//   - adjacent fragments are coalesced together
+//   - only the last fragment may be empty
+//   - the endOffset of the last fragment is the total size
 func invertSparseEntries(src []sparseEntry, size int64) []sparseEntry {
 	dst := src[:0]
 	var pre sparseEntry
@@ -720,4 +723,25 @@ func min(a, b int64) int64 {
 		return a
 	}
 	return b
+}
+
+// splitUSTARPath splits a path according to USTAR prefix and suffix rules.
+// If the path is not splittable, then it will return ("", "", false).
+func splitUSTARPath(name string) (prefix, suffix string, ok bool) {
+	length := len(name)
+	if length <= nameSize || !isASCII(name) {
+		return "", "", false
+	} else if length > prefixSize+1 {
+		length = prefixSize + 1
+	} else if name[length-1] == '/' {
+		length--
+	}
+
+	i := strings.LastIndex(name[:length], "/")
+	nlen := len(name) - i - 1 // nlen is length of suffix
+	plen := i                 // plen is length of prefix
+	if i <= 0 || nlen > nameSize || nlen == 0 || plen > prefixSize {
+		return "", "", false
+	}
+	return name[:i], name[i+1:], true
 }

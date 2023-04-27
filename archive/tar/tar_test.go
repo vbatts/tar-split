@@ -5,7 +5,9 @@
 package tar
 
 import (
+	realtar "archive/tar" // the stdlib one!
 	"bytes"
+	"encoding/gob"
 	"errors"
 	"fmt"
 	"io"
@@ -300,15 +302,15 @@ func TestRoundTrip(t *testing.T) {
 	data := []byte("some file contents")
 
 	var b bytes.Buffer
-	tw := NewWriter(&b)
-	hdr := &Header{
+	tw := realtar.NewWriter(&b)
+	hdr := &realtar.Header{
 		Name:       "file.txt",
 		Uid:        1 << 21, // Too big for 8 octal digits
 		Size:       int64(len(data)),
 		ModTime:    time.Now().Round(time.Second),
 		PAXRecords: map[string]string{"uid": "2097152"},
-		Format:     FormatPAX,
-		Typeflag:   TypeReg,
+		Format:     realtar.FormatPAX,
+		Typeflag:   realtar.TypeReg,
 	}
 	if err := tw.WriteHeader(hdr); err != nil {
 		t.Fatalf("tw.WriteHeader: %v", err)
@@ -326,8 +328,21 @@ func TestRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("tr.Next: %v", err)
 	}
-	if !reflect.DeepEqual(rHdr, hdr) {
-		t.Errorf("Header mismatch.\n got %+v\nwant %+v", rHdr, hdr)
+
+	// HACK let's marshal this from ours to realtar to another
+	buf := bytes.NewBuffer(nil)
+	enc := gob.NewEncoder(buf)
+	if err := enc.Encode(hdr); err != nil {
+		t.Fatalf("failed to encode header: %s", err)
+	}
+	dec := gob.NewDecoder(buf)
+	var nHdr Header
+	if err := dec.Decode(&nHdr); err != nil {
+		t.Fatalf("failed to encode header: %s", err)
+	}
+
+	if !reflect.DeepEqual(rHdr, &nHdr) {
+		t.Errorf("Header mismatch.\n got %+v\nwant %+v", rHdr, &nHdr)
 	}
 	rData, err := ioutil.ReadAll(tr)
 	if err != nil {
@@ -765,7 +780,7 @@ func TestHeaderAllowedFormats(t *testing.T) {
 
 func Benchmark(b *testing.B) {
 	type file struct {
-		hdr  *Header
+		hdr  *realtar.Header
 		body []byte
 	}
 
@@ -775,28 +790,28 @@ func Benchmark(b *testing.B) {
 	}{{
 		"USTAR",
 		[]file{{
-			&Header{Name: "bar", Mode: 0640, Size: int64(3)},
+			&realtar.Header{Name: "bar", Mode: 0640, Size: int64(3)},
 			[]byte("foo"),
 		}, {
-			&Header{Name: "world", Mode: 0640, Size: int64(5)},
+			&realtar.Header{Name: "world", Mode: 0640, Size: int64(5)},
 			[]byte("hello"),
 		}},
 	}, {
 		"GNU",
 		[]file{{
-			&Header{Name: "bar", Mode: 0640, Size: int64(3), Devmajor: -1},
+			&realtar.Header{Name: "bar", Mode: 0640, Size: int64(3), Devmajor: -1},
 			[]byte("foo"),
 		}, {
-			&Header{Name: "world", Mode: 0640, Size: int64(5), Devmajor: -1},
+			&realtar.Header{Name: "world", Mode: 0640, Size: int64(5), Devmajor: -1},
 			[]byte("hello"),
 		}},
 	}, {
 		"PAX",
 		[]file{{
-			&Header{Name: "bar", Mode: 0640, Size: int64(3), Xattrs: map[string]string{"foo": "bar"}},
+			&realtar.Header{Name: "bar", Mode: 0640, Size: int64(3), Xattrs: map[string]string{"foo": "bar"}},
 			[]byte("foo"),
 		}, {
-			&Header{Name: "world", Mode: 0640, Size: int64(5), Xattrs: map[string]string{"foo": "bar"}},
+			&realtar.Header{Name: "world", Mode: 0640, Size: int64(5), Xattrs: map[string]string{"foo": "bar"}},
 			[]byte("hello"),
 		}},
 	}}
@@ -808,7 +823,7 @@ func Benchmark(b *testing.B) {
 				for i := 0; i < b.N; i++ {
 					// Writing to ioutil.Discard because we want to
 					// test purely the writer code and not bring in disk performance into this.
-					tw := NewWriter(ioutil.Discard)
+					tw := realtar.NewWriter(ioutil.Discard)
 					for _, file := range v.files {
 						if err := tw.WriteHeader(file.hdr); err != nil {
 							b.Errorf("unexpected WriteHeader error: %v", err)
@@ -831,7 +846,7 @@ func Benchmark(b *testing.B) {
 			var r bytes.Reader
 
 			// Write the archive to a byte buffer.
-			tw := NewWriter(&buf)
+			tw := realtar.NewWriter(&buf)
 			for _, file := range v.files {
 				_ = tw.WriteHeader(file.hdr)
 				_, _ = tw.Write(file.body)

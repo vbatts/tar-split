@@ -404,6 +404,7 @@ func (tr *Reader) readHeader() (*Header, *block, error) {
 		if err != nil {
 			return nil, nil, err // EOF is okay here; exactly 1 block of zeros read
 		}
+
 		if bytes.Equal(tr.blk[:], zeroBlock[:]) {
 			return nil, nil, io.EOF // normal EOF; exactly 2 block of zeros read
 		}
