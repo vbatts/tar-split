@@ -63,7 +63,7 @@ func Lint() error {
 // Run the tests available
 func Test() error {
 	fmt.Println("Testing...")
-	cmd := exec.Command("go", "test", "-v", "./...")
+	cmd := exec.Command("go", "test", "-cover", "-v", "-bench", "'.'", "-benchmem", "./...")
 	cmd.Stdout = Stdout
 	cmd.Stderr = Stderr
 	return cmd.Run()
