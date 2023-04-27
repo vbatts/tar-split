@@ -4,9 +4,11 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
+	"time"
 
 	"github.com/magefile/mage/mg" // mg contains helpful utility functions, like Deps
 )
@@ -20,6 +22,8 @@ var (
 	Stderr         = ourStderr
 
 	golangcilintVersion = "v1.51.2"
+
+	cleanFiles = []string{}
 )
 
 // Run all-the-things
@@ -76,14 +80,38 @@ func Install() error {
 	return os.Rename(app, "/usr/local/bin/"+app)
 }
 
+func init() {
+	cleanFiles = append(cleanFiles, ".install.deps") // sloppy
+}
+
 // Manage your deps, or running package managers.
 func InstallDeps() error {
+	const fpath = ".install.deps"
+	success := false
+	defer func() {
+		if success {
+			fd, err := os.Create(fpath)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+			}
+			fd.Close()
+		}
+	}()
+	if IsFresh(fpath, time.Now()) {
+		return nil
+	}
+
 	mg.Deps(Tidy)
 	fmt.Println("Installing Deps...")
 	cmd := exec.Command("go", "get", "./...")
 	cmd.Stdout = Stdout
 	cmd.Stderr = Stderr
-	return cmd.Run()
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+	success = true
+	return nil
 }
 
 // Tools used during build/dev/test
@@ -113,4 +141,17 @@ func Tidy() error {
 func Clean() {
 	fmt.Println("Cleaning...")
 	os.RemoveAll(app)
+	for _, fpath := range cleanFiles {
+		os.RemoveAll(fpath)
+	}
+}
+
+// IsFresh checks if `fpath` exists (therefore `false`, it is not fresh) or if
+// `fpath` is _newer_ than `t` (true, as in it's freshly built)
+func IsFresh(fpath string, t time.Time) bool {
+	fi, err := os.Stat(fpath)
+	if err != nil && errors.Is(err, os.ErrNotExist) {
+		return false
+	}
+	return fi.ModTime().Before(t)
 }
