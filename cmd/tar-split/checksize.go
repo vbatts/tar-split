@@ -5,7 +5,6 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 
@@ -31,7 +30,7 @@ func CommandChecksize(c *cli.Context) {
 		}
 		fmt.Printf("inspecting %q (size %dk)\n", fh.Name(), fi.Size()/1024)
 
-		packFh, err := ioutil.TempFile("", "packed.")
+		packFh, err := os.CreateTemp("", "packed.")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -60,7 +59,7 @@ func CommandChecksize(c *cli.Context) {
 				log.Fatal(err)
 			}
 			num++
-			if _, err := io.Copy(ioutil.Discard, tr); err != nil {
+			if _, err := io.Copy(io.Discard, tr); err != nil {
 				log.Fatal(err)
 			}
 		}
@@ -76,7 +75,7 @@ func CommandChecksize(c *cli.Context) {
 		}
 		fmt.Printf(" -- size of metadata uncompressed: %dk\n", fi.Size()/1024)
 
-		gzPackFh, err := ioutil.TempFile("", "packed.gz.")
+		gzPackFh, err := os.CreateTemp("", "packed.gz.")
 		if err != nil {
 			log.Fatal(err)
 		}

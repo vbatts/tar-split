@@ -4,7 +4,6 @@ import (
 	"archive/tar"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -52,14 +51,14 @@ func TestLargeJunkPadding(t *testing.T) {
 	}()
 
 	// Disassemble our junk file.
-	nilPacker := storage.NewJSONPacker(ioutil.Discard)
+	nilPacker := storage.NewJSONPacker(io.Discard)
 	rdr, err := NewInputTarStream(pR, nilPacker, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Copy the entire rdr.
-	_, err = io.Copy(ioutil.Discard, rdr)
+	_, err = io.Copy(io.Discard, rdr)
 	if err != nil {
 		t.Fatal(err)
 	}

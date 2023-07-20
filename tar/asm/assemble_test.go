@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"hash/crc64"
 	"io"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -232,7 +231,7 @@ func BenchmarkAsm(b *testing.B) {
 					b.Fatal(err)
 				}
 				// read it all to the bit bucket
-				i1, err := io.Copy(ioutil.Discard, tarStream)
+				i1, err := io.Copy(io.Discard, tarStream)
 				if err != nil {
 					b.Fatal(err)
 				}
@@ -243,7 +242,7 @@ func BenchmarkAsm(b *testing.B) {
 
 				rc := NewOutputTarStream(fgp, sup)
 
-				i2, err := io.Copy(ioutil.Discard, rc)
+				i2, err := io.Copy(io.Discard, rc)
 				if err != nil {
 					b.Fatal(err)
 				}

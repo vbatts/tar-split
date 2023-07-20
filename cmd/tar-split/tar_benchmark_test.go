@@ -2,7 +2,6 @@ package main
 
 import (
 	"io"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -29,7 +28,7 @@ func BenchmarkUpstreamTar(b *testing.B) {
 				fh.Close()
 				b.Fatal(err)
 			}
-			_, err = io.Copy(ioutil.Discard, tr)
+			_, err = io.Copy(io.Discard, tr)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -57,7 +56,7 @@ func BenchmarkOurTarNoAccounting(b *testing.B) {
 				fh.Close()
 				b.Fatal(err)
 			}
-			_, err = io.Copy(ioutil.Discard, tr)
+			_, err = io.Copy(io.Discard, tr)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -86,7 +85,7 @@ func BenchmarkOurTarYesAccounting(b *testing.B) {
 				fh.Close()
 				b.Fatal(err)
 			}
-			_, err = io.Copy(ioutil.Discard, tr)
+			_, err = io.Copy(io.Discard, tr)
 			if err != nil {
 				b.Fatal(err)
 			}

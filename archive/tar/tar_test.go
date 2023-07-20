@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"os"
 	"path"
@@ -264,7 +263,7 @@ func TestFileInfoHeaderSymlink(t *testing.T) {
 	case "android", "nacl", "plan9", "windows":
 		t.Skip("symlinks not supported")
 	}
-	tmpdir, err := ioutil.TempDir("", "TestFileInfoHeaderSymlink")
+	tmpdir, err := os.MkdirTemp("", "TestFileInfoHeaderSymlink")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -329,7 +328,7 @@ func TestRoundTrip(t *testing.T) {
 	if !reflect.DeepEqual(rHdr, hdr) {
 		t.Errorf("Header mismatch.\n got %+v\nwant %+v", rHdr, hdr)
 	}
-	rData, err := ioutil.ReadAll(tr)
+	rData, err := io.ReadAll(tr)
 	if err != nil {
 		t.Fatalf("Read: %v", err)
 	}
@@ -806,9 +805,9 @@ func Benchmark(b *testing.B) {
 			b.Run(v.label, func(b *testing.B) {
 				b.ReportAllocs()
 				for i := 0; i < b.N; i++ {
-					// Writing to ioutil.Discard because we want to
+					// Writing to io.Discard because we want to
 					// test purely the writer code and not bring in disk performance into this.
-					tw := NewWriter(ioutil.Discard)
+					tw := NewWriter(io.Discard)
 					for _, file := range v.files {
 						if err := tw.WriteHeader(file.hdr); err != nil {
 							b.Errorf("unexpected WriteHeader error: %v", err)
@@ -846,7 +845,7 @@ func Benchmark(b *testing.B) {
 					if _, err := tr.Next(); err != nil {
 						b.Errorf("unexpected Next error: %v", err)
 					}
-					if _, err := io.Copy(ioutil.Discard, tr); err != nil {
+					if _, err := io.Copy(io.Discard, tr); err != nil {
 						b.Errorf("unexpected Copy error : %v", err)
 					}
 				}
