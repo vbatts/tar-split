@@ -7,7 +7,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 
@@ -73,7 +72,7 @@ func main() {
 
 			// it is allowable, and not uncommon that there is further padding on the
 			// end of an archive, apart from the expected 1024 null bytes
-			remainder, err := ioutil.ReadAll(fh)
+			remainder, err := io.ReadAll(fh)
 			if err != nil && err != io.EOF {
 				log.Fatal(err, fh.Name())
 			}

@@ -3,7 +3,7 @@ package storage
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"strings"
 	"testing"
 )
@@ -31,7 +31,7 @@ func TestGetter(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			buf, err := ioutil.ReadAll(r)
+			buf, err := io.ReadAll(r)
 			if err != nil {
 				t.Error(err)
 			}

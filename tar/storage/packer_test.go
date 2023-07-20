@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"io"
-	"io/ioutil"
 	"os"
 	"testing"
 )
@@ -186,7 +185,7 @@ func BenchmarkGetPut(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			func() {
-				fh, err := ioutil.TempFile("", "tar-split.")
+				fh, err := os.CreateTemp("", "tar-split.")
 				if err != nil {
 					b.Fatal(err)
 				}

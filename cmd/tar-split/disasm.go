@@ -3,7 +3,6 @@ package main
 import (
 	"compress/gzip"
 	"io"
-	"io/ioutil"
 	"os"
 
 	"github.com/sirupsen/logrus"
@@ -51,7 +50,7 @@ func CommandDisasm(c *cli.Context) {
 	}
 	var out io.Writer
 	if c.Bool("no-stdout") {
-		out = ioutil.Discard
+		out = io.Discard
 	} else {
 		out = os.Stdout
 	}
