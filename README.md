@@ -16,7 +16,7 @@ Code API for libraries provided by `tar-split`:
 
 ## Install
 
-The command line utilitiy is installable via:
+The command line utility is installable via:
 
 ```bash
 go get github.com/vbatts/tar-split/cmd/tar-split
