@@ -21,7 +21,7 @@ var (
 	Stdout         = ourStdout
 	Stderr         = ourStderr
 
-	golangcilintVersion = "v1.51.2"
+	golangcilintVersion = "v1.61.0"
 
 	cleanFiles = []string{}
 )
