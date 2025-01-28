@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/vbatts/tar-split/archive/tar"
+	"github.com/vbatts/tar-split/internal/archive/tar"
 	"github.com/vbatts/tar-split/tar/storage"
 )
 

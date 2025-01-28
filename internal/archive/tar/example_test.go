@@ -5,12 +5,13 @@
 package tar_test
 
 import (
-	"archive/tar"
 	"bytes"
 	"fmt"
 	"io"
 	"log"
 	"os"
+
+	"github.com/vbatts/tar-split/internal/archive/tar"
 )
 
 func Example_minimal() {
