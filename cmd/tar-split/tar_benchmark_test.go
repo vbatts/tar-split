@@ -7,7 +7,7 @@ import (
 
 	upTar "archive/tar"
 
-	ourTar "github.com/vbatts/tar-split/internal/archive/tar"
+	ourTar "github.com/vbatts/tar-split/archive/tar"
 )
 
 var testfile = "../../archive/tar/testdata/sparse-formats.tar"
