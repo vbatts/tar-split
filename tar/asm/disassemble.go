@@ -161,8 +161,8 @@ func newInputTarStreamCommon(
 	r io.Reader,
 	p storage.Packer,
 	fp storage.FilePutter,
-	withDone bool,
-) (pr *io.PipeReader, done <-chan error) {
+	done chan<- error,
+) (pr *io.PipeReader) {
 	// What to do here... folks will want their own access to the Reader that is
 	// their tar archive stream, but we'll need that same stream to use our
 	// forked 'archive/tar'.
@@ -181,22 +181,14 @@ func newInputTarStreamCommon(
 	// `archive/tar` doesn't care.
 	pr, pw := io.Pipe()
 
-	// We need a putter that will generate the crc64 sums of file payloads.
 	if fp == nil {
 		fp = storage.NewDiscardFilePutter()
 	}
 
 	outputRdr := io.TeeReader(r, pw)
+	go runInputTarStreamGoroutine(outputRdr, pw, p, fp, done)
 
-	if withDone {
-		ch := make(chan error, 1)
-		done = ch
-		go runInputTarStreamGoroutine(outputRdr, pw, p, fp, ch)
-		return pr, done
-	}
-
-	go runInputTarStreamGoroutine(outputRdr, pw, p, fp, nil)
-	return pr, nil
+	return pr
 }
 
 // NewInputTarStream wraps the Reader stream of a tar archive and provides a
@@ -213,9 +205,11 @@ func newInputTarStreamCommon(
 // If callers need to be able to abort early and/or wait for goroutine termination,
 // prefer NewInputTarStreamWithDone.
 //
-// Deprecated: Use NewInputTarStreamWithDone instead.
+// Deprecated: This leaves a goroutine around if the consumer aborts without consuming
+// the whole stream, and does not allow the caller to know when r is safe to deallocate
+// or when p has written everything. Use NewInputTarStreamWithDone instead.
 func NewInputTarStream(r io.Reader, p storage.Packer, fp storage.FilePutter) (io.Reader, error) {
-	pr, _ := newInputTarStreamCommon(r, p, fp, false)
+	pr := newInputTarStreamCommon(r, p, fp, nil)
 	return pr, nil
 }
 
@@ -232,7 +226,12 @@ func NewInputTarStream(r io.Reader, p storage.Packer, fp storage.FilePutter) (io
 // The returned reader is an io.ReadCloser so callers can stop early; closing it
 // aborts the pipe so the internal goroutine can terminate promptly (rather than
 // hanging on a blocked pipe write).
+//
+// The caller is expected to consume the returned reader fully until EOF
+// (not just the tar EOF marker); closing the returned reader earlier will
+// cause the done channel to return a failure.
 func NewInputTarStreamWithDone(r io.Reader, p storage.Packer, fp storage.FilePutter) (io.ReadCloser, <-chan error, error) {
-	pr, done := newInputTarStreamCommon(r, p, fp, true)
+	done := make(chan error, 1)
+	pr := newInputTarStreamCommon(r, p, fp, done)
 	return pr, done, nil
 }

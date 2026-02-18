@@ -97,10 +97,10 @@ func (p *recordingPacker) AddEntry(e storage.Entry) (int, error) {
 	// Copy payload because callers may reuse buffers.
 	cp := e
 	if e.Payload != nil {
-		cp.Payload = append([]byte(nil), e.Payload...)
+		cp.Payload = bytes.Clone(e.Payload)
 	}
 	p.entries = append(p.entries, cp)
-	return len(cp.Payload), nil
+	return len(p.entries), nil
 }
 
 func (p *recordingPacker) snapshot() []storage.Entry {
@@ -118,17 +118,18 @@ type recordingFilePutter struct {
 }
 
 func (fp *recordingFilePutter) Put(name string, r io.Reader) (int64, []byte, error) {
-	b, err := io.ReadAll(r)
+	dataLen, err := io.Copy(io.Discard, r)
 	if err != nil {
 		return 0, nil, err
 	}
+
 	fp.mu.Lock()
 	fp.puts = append(fp.puts, name)
 	fp.mu.Unlock()
 
 	// Return a deterministic "checksum" based on content length.
-	csum := []byte(fmt.Sprintf("len=%d", len(b)))
-	return int64(len(b)), csum, nil
+	csum := []byte(fmt.Sprintf("len=%d", dataLen))
+	return dataLen, csum, nil
 }
 
 // Helper function to generate the tar with optional extra padding.
@@ -339,7 +340,8 @@ func TestNewInputTarStreamWithDonUnderlyingClosed(t *testing.T) {
 		t.Fatalf("timeout waiting for underlying reader to enter blocked state")
 	}
 
-	// Now "close" the underlying reader while the tar-split goroutine is still running.
+	// Now trigger an error from the underlying closableBlockingReader while the tar-split
+	// goroutine is still running.
 	under.Close()
 
 	// The tar-split goroutine should treat this as a non-EOF error, call fail(err),
