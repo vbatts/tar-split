@@ -43,10 +43,11 @@ func CommandChecksize(c *cli.Context) {
 
 		sp := storage.NewJSONPacker(packFh)
 		fp := storage.NewDiscardFilePutter()
-		dissam, err := asm.NewInputTarStream(fh, sp, fp)
+		dissam, done, err := asm.NewInputTarStreamWithDone(fh, sp, fp)
 		if err != nil {
 			log.Fatal(err)
 		}
+		defer dissam.Close()
 
 		var num int
 		tr := tar.NewReader(dissam)
@@ -64,6 +65,9 @@ func CommandChecksize(c *cli.Context) {
 			}
 		}
 		fmt.Printf(" -- number of files: %d\n", num)
+		if derr := <-done; derr != nil {
+			log.Fatal(derr)
+		}
 
 		if err := packFh.Sync(); err != nil {
 			log.Fatal(err)

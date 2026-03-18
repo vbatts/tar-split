@@ -163,16 +163,20 @@ func TestTarStream(t *testing.T) {
 		fgp := storage.NewBufferFileGetPutter()
 
 		// wrap the disassembly stream
-		tarStream, err := NewInputTarStream(gzRdr, sp, fgp)
+		tarStream, done, err := NewInputTarStreamWithDone(gzRdr, sp, fgp)
 		if err != nil {
 			t.Fatal(err)
 		}
+		defer tarStream.Close()
 
 		// get a sum of the stream after it has passed through to ensure it's the same.
 		h0 := sha1.New()
 		i, err := io.Copy(h0, tarStream)
 		if err != nil {
 			t.Fatal(err)
+		}
+		if derr := <-done; derr != nil {
+			t.Fatal(derr)
 		}
 
 		if i != tc.expectedSize {
@@ -227,14 +231,18 @@ func BenchmarkAsm(b *testing.B) {
 				fgp := storage.NewBufferFileGetPutter()
 
 				// wrap the disassembly stream
-				tarStream, err := NewInputTarStream(gzRdr, sp, fgp)
+				tarStream, done, err := NewInputTarStreamWithDone(gzRdr, sp, fgp)
 				if err != nil {
 					b.Fatal(err)
 				}
+				defer tarStream.Close()
 				// read it all to the bit bucket
 				i1, err := io.Copy(io.Discard, tarStream)
 				if err != nil {
 					b.Fatal(err)
+				}
+				if derr := <-done; derr != nil {
+					b.Fatal(derr)
 				}
 
 				r := bytes.NewBuffer(w.Bytes())
