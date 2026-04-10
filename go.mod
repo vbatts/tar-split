@@ -1,6 +1,6 @@
 module github.com/vbatts/tar-split
 
-go 1.17
+go 1.22.0
 
 require (
 	github.com/fatih/color v1.15.0
