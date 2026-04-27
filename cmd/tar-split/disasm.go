@@ -44,10 +44,11 @@ func CommandDisasm(c *cli.Context) {
 
 	// we're passing nil here for the file putter, because the ApplyDiff will
 	// handle the extraction of the archive
-	its, err := asm.NewInputTarStream(inputStream, metaPacker, nil)
+	its, done, err := asm.NewInputTarStreamWithDone(inputStream, metaPacker, nil)
 	if err != nil {
 		logrus.Fatal(err)
 	}
+	defer its.Close()
 	var out io.Writer
 	if c.Bool("no-stdout") {
 		out = io.Discard
@@ -57,6 +58,9 @@ func CommandDisasm(c *cli.Context) {
 	i, err := io.Copy(out, its)
 	if err != nil {
 		logrus.Fatal(err)
+	}
+	if derr := <-done; derr != nil {
+		logrus.Fatal(derr)
 	}
 	logrus.Infof("created %s from %s (read %d bytes)", c.String("output"), c.Args()[0], i)
 }

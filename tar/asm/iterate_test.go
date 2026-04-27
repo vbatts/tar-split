@@ -75,10 +75,12 @@ func TestIterateHeaders(t *testing.T) {
 	require.NoError(t, err)
 
 	var tarSplit bytes.Buffer
-	tsReader, err := NewInputTarStream(&tarball, storage.NewJSONPacker(&tarSplit), storage.NewDiscardFilePutter())
+	tsReader, done, err := NewInputTarStreamWithDone(&tarball, storage.NewJSONPacker(&tarSplit), storage.NewDiscardFilePutter())
 	require.NoError(t, err)
+	defer tsReader.Close()
 	_, err = io.Copy(io.Discard, tsReader)
 	require.NoError(t, err)
+	require.NoError(t, <-done)
 
 	unpacker := storage.NewJSONUnpacker(&tarSplit)
 	var actual []tar.Header
