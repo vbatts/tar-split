@@ -18,18 +18,11 @@ jobs:
     steps:
 
       - uses: actions/checkout@v7.0.1
-        with:
-          path: go/src/github.com/vbatts/tar-split
-
       - uses: actions/setup-go@v7.0.0
         with:
           go-version: ${{ matrix.go }}
 
       - name: lint
-        env:
-          GOPATH: /home/runner/work/tar-split/tar-split/go
         run: |
           set -x
-          export PATH=$GOPATH/bin:$PATH
-          cd go/src/github.com/vbatts/tar-split
           go run mage.go -v lint
