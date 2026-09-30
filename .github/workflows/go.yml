@@ -1,32 +1,28 @@
 name: build and vet
 
 on:
+  push:
   pull_request:
-    branches_ignore: []
+
+permissions:
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go: ['1.22', '1.23', '1.24', '1.25', '1.26']
+        go: ['1.23', '1.24', '1.25', '1.26', '1.27']
 
     name: build and vet
     steps:
 
-      - uses: actions/checkout@v2
-        with:
-          path: go/src/github.com/vbatts/tar-split
-
-      - uses: actions/setup-go@v4
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-go@v7.0.0
         with:
           go-version: ${{ matrix.go }}
 
       - name: vet and build
-        env:
-          GOPATH: /home/runner/work/tar-split/tar-split/go
         run: |
           set -x
-          export PATH=$GOPATH/bin:$PATH
-          cd go/src/github.com/vbatts/tar-split
           go run mage.go -v vet build test
